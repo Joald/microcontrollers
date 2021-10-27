@@ -1,0 +1,3 @@
+-mcpu=cortex-r4 -mthumb
+
+arm gcc
