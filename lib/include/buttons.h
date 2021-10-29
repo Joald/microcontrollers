@@ -1,6 +1,8 @@
 #ifndef BUTTONS_H
 #define BUTTONS_H
 
+#include <gpio.h>
+
 ////////////////////////// INPUT BUTTONS //////////////////////////
 
 #define BUTTON_COUNT 7
