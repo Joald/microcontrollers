@@ -20,6 +20,13 @@ int message_lengths[MESSAGE_COUNT] = {
   sizeof(MODE_PRESSED), sizeof(MODE_RELEASED),
 };
 
+static int getIndex(int button, bool if_released) {
+  // when releasing we should add 1 to index
+  return 2 * button + if_released;
+}
+
+#ifdef USE_MSG_BUFFER
+
 struct OutputBuffer {
   // buffer stores index into messages and message_lengths arrays
   int buf[OUT_BUF_SIZE];
@@ -56,7 +63,15 @@ void insertToBuf(int button, bool if_released) {
   // assume output buffer can never fill up
   int buffer_index = placeToInsert();
 
-  // when releasing we should add 1 to index
-  output_buffer.buf[buffer_index] = 2 * button + if_released;
+  output_buffer.buf[buffer_index] = getIndex(button, if_released);
   output_buffer.size++;
+}
+
+#endif
+
+MessageBuffer getBuf(ButtonID button, bool if_released) {
+  // assert output_buffer.offset == 0
+  int index = getIndex(button, if_released);
+  MessageBuffer buf = {.buf = messages[index], .len = message_lengths[index]};
+  return buf;
 }

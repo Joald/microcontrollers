@@ -29,6 +29,13 @@
 bool shouldSend();
 char getCharToSend();
 
+typedef struct {
+  const char* buf;
+  int len;
+} MessageBuffer;
+
+MessageBuffer getBuf(ButtonID button, bool if_released);
+
 void insertToBuf(int button, bool if_released);
 
 #endif // MESSAGES_H

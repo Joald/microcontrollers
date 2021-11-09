@@ -38,25 +38,31 @@ void initLeds() {
 // color-based operations
 
 void diodeOn(LedColor color) {
-  if (color == 'R') {
+  if (color == 'R' || color == 'A') {
     RedLEDon();
-  } else if (color == 'G') {
+  } 
+  if (color == 'G' || color == 'A') {
     GreenLEDon();
-  } else if (color == 'B') {
+  }
+  if (color == 'B' || color == 'A') {
     BlueLEDon();
-  } else if (color == 'g') {
+  }
+  if (color == 'g' || color == 'A') {
     Green2LEDon();
   }
 }
 
 void diodeOff(LedColor color) {
-  if (color == 'R') {
+  if (color == 'R' || color == 'A') {
     RedLEDoff();
-  } else if (color == 'G') {
+  } 
+  if (color == 'G' || color == 'A') {
     GreenLEDoff();
-  } else if (color == 'B') {
+  }
+  if (color == 'B' || color == 'A') {
     BlueLEDoff();
-  } else if (color == 'g') {
+  }
+  if (color == 'g' || color == 'A') {
     Green2LEDoff();
   }
 }

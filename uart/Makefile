@@ -4,7 +4,8 @@ CC = arm-eabi-gcc
 OBJCOPY = arm-eabi-objcopy
 FLAGS = -mthumb -mcpu=cortex-m4
 CPPFLAGS = -DSTM32F411xE
-CFLAGS = $(FLAGS) -Wall -Wextra -Wpedantic -Wshadow -Wunused \
+CFLAGS = $(FLAGS) -std=c11 \
+    -Wall -Wextra -Wpedantic -Wshadow -Wunused \
     -Wcast-align \
     -Wcast-qual -Wno-error=unused-variable \
     -Wdisabled-optimization \

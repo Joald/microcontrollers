@@ -54,6 +54,7 @@ typedef enum {
   C_GREEN = 'G',
   C_BLUE = 'B',
   C_GREEN2 = 'g',
+  C_ALL = 'A'
 } LedColor;
 
 void diodeOn(LedColor color);
