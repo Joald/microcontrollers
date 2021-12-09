@@ -130,20 +130,36 @@ void dmaRecv(char* buf) { // size must be 1
 
 // Handlers
 
-static DmaUartHandler handlers[HANDLER_TYPES];
+#define HANDLER_BUF_SIZE 64
+
+typedef struct {
+  DmaUartHandler handler_buf[HANDLER_BUF_SIZE];
+  size_t size;
+  size_t start;
+} DmaUartHandlerBuf;
+
+static DmaUartHandlerBuf handlers[HANDLER_TYPES];
 
 void registerDmaUartHandler(HandlerPurpose type, DmaUartHandler handler) {
-  handlers[type] = handler;
+  DmaUartHandlerBuf* buf = &handlers[type];
+  buf->handler_buf[(buf->start + buf->size) % HANDLER_BUF_SIZE] = handler;
+  buf->size++;
 }
 
-#define CALL_HANDLER(type_) \
+#define CALL_HANDLER(type_, op_buf) \
   do { \
     HandlerPurpose type = type_; \
-    DmaUartHandler handler = handlers[type]; \
-    if (handler) handler(); \
+    DmaUartHandlerBuf* buf = &handlers[type]; \
+    for (size_t i = buf->start; i < buf->size; ++i) { \
+      int index = i % HANDLER_BUF_SIZE; \
+      DmaUartHandler handler = buf->handler_buf[index]; \
+      if (handler) { \
+        handler(op_buf); \
+      } \
+    } \
   } while (false)
 
-void DMA1_Stream6_IRQHandler() {
+extern void DMA1_Stream6_IRQHandler() {
   // read which interrupts we should handle
   uint32_t isr = DMA1->HISR;
   if (isr & DMA_HISR_TCIF6) {
@@ -151,21 +167,28 @@ void DMA1_Stream6_IRQHandler() {
     DMA1->HIFCR = DMA_HIFCR_CTCIF6;
 
     if (queue.size > 0) {
+      // ignore warning as we want to use expression-statements
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
       SendQueueElem* to_send = QUEUE_POP();
+#pragma GCC diagnostic pop
       forceSend(to_send->buf, to_send->len);
+      CALL_HANDLER(H_DMA_SEND_FINISH, (char*) to_send->buf);
+    } else {
+      CALL_HANDLER(H_DMA_SEND_FINISH, NULL);
     }
 
-    CALL_HANDLER(H_DMA_SEND_FINISH);
+    
   }
 }
 
-void DMA1_Stream5_IRQHandler() {
+extern void DMA1_Stream5_IRQHandler() {
   // read which interrupts we should handle
   uint32_t isr = DMA1->HISR;
   if (isr & DMA_HISR_TCIF5) {
     // clear interrupt flag
     DMA1->HIFCR = DMA_HIFCR_CTCIF5;
     
-    CALL_HANDLER(H_DMA_RECEIVE_FINISH);
+    CALL_HANDLER(H_DMA_RECEIVE_FINISH, NULL);
   }
 }

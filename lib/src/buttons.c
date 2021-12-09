@@ -111,7 +111,7 @@ void registerButtonHandler(ButtonID button, ButtonHandler handler) {
   } while (false)
 
 #define SINGLE_PIN_HANDLER(pin) \
-  void EXTI##pin##_IRQHandler(void) { \
+  extern void EXTI##pin##_IRQHandler(void) { \
     ButtonID button = button_at_pin(pin); \
     HANDLE_BUTTON(button); \
   }
@@ -122,11 +122,14 @@ SINGLE_PIN_HANDLER(4)
 
 // TODO: generalize the below with macro
 
+// handlers are extern to force a linker error 
+// when compiling other *.c that uses the same ones
+
 #define PINS_9_TO_5_COUNT 2
 
 const int pins_9_to_5[PINS_9_TO_5_COUNT] = {5, 6};
 
-void EXTI9_5_IRQHandler(void) {
+extern void EXTI9_5_IRQHandler(void) {
   for (int i = 0; i < PINS_9_TO_5_COUNT; ++i) {
     const ButtonID button = button_at_pin(pins_9_to_5[i]);
     if (EXTI->PR & buttonPR(button)) {
@@ -140,7 +143,7 @@ void EXTI9_5_IRQHandler(void) {
 
 const int pins_15_to_10[PINS_15_TO_10] = {10, 13};
 
-void EXTI15_10_IRQHandler(void) {
+extern void EXTI15_10_IRQHandler(void) {
   for (int i = 0; i < PINS_15_TO_10; ++i) {
     const ButtonID button = button_at_pin(pins_15_to_10[i]);
     const int pr = buttonPR(button);
