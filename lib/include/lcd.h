@@ -11,6 +11,7 @@ void LCDgoto(int textLine, int charPos);
 void LCDputchar(char c);
 void LCDputcharWrap(char c);
 
+// additional functions made available on top of the basic driver
 void LCDsetFont(const font_t *font);
 
 #endif // GUITAR_HERO_LCD_H

@@ -13,6 +13,13 @@ void dmaRecv(char* buf); // size must be 1
 // helper send macro that works only for compile-time constants
 #define DMA_SEND(MSG) dmaSend(MSG, sizeof(MSG) - 1)
 
+// if DEBUG, DMA_DBG prints, otherwise it's a noop (but still requires semicolon at the end)
+#ifdef DEBUG
+#define DMA_DBG(MSG) DMA_SEND(MSG)
+#else
+#define DMA_DBG(_) do {} while (false)
+#endif
+
 // Handlers
 typedef void(*DmaUartHandler)(char*);
 

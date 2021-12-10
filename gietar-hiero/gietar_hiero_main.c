@@ -51,23 +51,52 @@ int main() {
   for (unsigned i = 0; i < sizeof(STRR) - 1; ++i) {
     LCDputchar(buf[i]);
   }
-  LCDputcharWrap('0' + key_row);
+  LCDputcharWrap('-');
   #define STRC ", Col: "
   buf = STRC;
   for (unsigned i = 0; i < sizeof(STRC) - 1; ++i) {
     LCDputcharWrap(buf[i]);
   }
-  LCDputcharWrap('0' + key_col);
+  LCDputcharWrap('-');
+
+  LCDgoto(1, 0);
+  #define STRP "B===D"
+  buf = STRP;
+  for (unsigned i = 0; i < sizeof(STRP) - 1; ++i) {
+    LCDputcharWrap(buf[i]);
+  }
+
+  bool hash_displayed = false;  
 
   while (true) {
-    if (displayed_row != key_row || displayed_col != key_col) {
+    KbKey key;
+    while ((key = getNext()) != KB_NOKEY) {
+      if (key == KB_1) {
+        DMA_DBG("Found key 1!\n");
+      }
+      if (GET_ROW_NUM(key) == 1) {
+        DMA_DBG("ROW_NUM = 1!\n");
+      }
+      if (GET_COL_NUM(key) == 1) {
+        DMA_DBG("COL_NUM = 1!\n");
+      }
       LCDgoto(0, 5);
-      LCDputchar('0' + key_row);
+      LCDputchar('0' + GET_ROW_NUM(key));
       LCDgoto(0, 13);
-      LCDputchar('0' + key_col);
-      displayed_col = key_col;
-      displayed_row = key_row;
+      LCDputchar('0' + GET_COL_NUM(key));
+    } 
+    if (isKeyHeld(KB_POUND)) {
+      if (!hash_displayed) {
+        LCDgoto(3, 7);
+        LCDputchar('#');
+        hash_displayed = true;
+      }
+    } else if (hash_displayed) {
+      LCDgoto(3, 7);
+      LCDputchar(' ');        
+      hash_displayed = false;
     }
+
     Delay(1000000);
   }
 }
