@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <delay.h>
 #include <fonts.h>
 #include <gpio.h>
@@ -53,6 +54,12 @@
 #define LCD_COLOR_GREEN    0x07E0
 #define LCD_COLOR_CYAN     0x7FFF
 #define LCD_COLOR_YELLOW   0xFFE0
+
+// colors picked in gimp and exported to bmp
+#define LCD_BETTER_RED     0xc000
+#define LCD_BETTER_BLUE    0x27f
+#define LCD_BETTER_GREEN   0xd41
+#define LCD_BETTER_YELLOW  0xd680
 
 /* Needed delay(s)  */
 
@@ -186,6 +193,10 @@ void LCDsetRectangle(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {
   LCDwriteCommand(0x2C);
 }
 
+void LCDsetFullRectangle() {
+  LCDsetRectangle(0, 0, LCD_PIXEL_WIDTH - 1, LCD_PIXEL_HEIGHT - 1);
+}
+
 static void LCDcontrollerConfigure(void) {
   /* Activate chip select */
   CS(0);
@@ -294,7 +305,7 @@ void LCDclear() {
   int i, j;
 
   CS(0);
-  LCDsetRectangle(0, 0, LCD_PIXEL_WIDTH - 1, LCD_PIXEL_HEIGHT - 1);
+  LCDsetFullRectangle();
   for (i = 0; i < LCD_PIXEL_WIDTH; ++i) {
     for (j = 0; j < LCD_PIXEL_HEIGHT; ++j) {
       LCDwriteData16(BackColor);
@@ -342,5 +353,105 @@ void LCDsetFont(const font_t *font) {
   TextHeight = LCD_PIXEL_HEIGHT / CurrentFont->height;
   TextWidth  = LCD_PIXEL_WIDTH  / CurrentFont->width;
   XOffset = (LCD_PIXEL_WIDTH  - TextWidth  * CurrentFont->width)  / 2;
+  // don't have the space for padding
   YOffset = 0; //(LCD_PIXEL_HEIGHT - TextHeight * CurrentFont->height) / 2;
+}
+
+#define BSIZE (LCD_PIXEL_WIDTH * LCD_PIXEL_HEIGHT)
+static const uint16_t board_pixels[BSIZE] = { 
+  #include "board.txt"
+};
+
+void LCDdrawBoard() {
+  CS(0);
+  LCDsetFullRectangle();
+  for (int i = 0; i < BSIZE; ++i) {
+    LCDwriteData16(board_pixels[i]);
+  }
+  CS(1);
+  LCDgoto(0, 0);
+}
+
+#define NOTE_WIDTH 32
+#define NOTE_HEIGHT 20
+
+#define NOTE_SIZE (NOTE_WIDTH * NOTE_HEIGHT)
+
+// treating this one as extremely poor alpha channel
+static const uint16_t note_pixels[NOTE_SIZE] = {
+  #include "note.txt"
+};
+
+static const uint16_t color_map[4] = {
+  LCD_BETTER_BLUE,
+  LCD_BETTER_GREEN,
+  LCD_BETTER_YELLOW,
+  LCD_BETTER_RED
+};
+
+static void drawNoteHelper(int x, int y, NoteColor color) {
+  for (int py = 0; py < NOTE_HEIGHT; ++py) {
+    for (int px = 0; px < NOTE_WIDTH; ++px) {
+      int index = py * NOTE_WIDTH + px;
+      uint16_t pixel = note_pixels[index];
+      if (pixel == 0x0) {
+        // draw bg
+        int board_x = x + px;
+        int board_y = y + py;
+        int board_index = board_y * LCD_PIXEL_WIDTH + board_x;
+        pixel = board_pixels[board_index];
+      } else {
+        // draw color scaled by note pixel        
+
+        // pixel contains the same intensity of each color channel,
+        // so we treat it as a bitmask to reduce intensity of our desired color
+        // not a linear scale but will probably look good enough
+        pixel &= color_map[color]; 
+        
+      }
+      LCDwriteData16(pixel);
+    }
+  }
+}
+
+static void drawBoardLine(int startx, int starty, int width) {
+  // assert(startx + width < LCD_PIXEL_WIDTH);
+  int start_index = startx + starty * LCD_PIXEL_WIDTH;
+
+  for (int i = 0; i < width; ++i) {
+    LCDwriteData16(board_pixels[start_index + i]);
+  }
+}
+
+static const int col_x[5] = {-1, 0, 33, 65, 95};
+
+void LCDdrawNote(int col, int y, NoteColor color) {  
+  LCDdrawNoteXY(col_x[col], y, color);
+}
+
+void LCDdrawNoteXY(int x, int y, NoteColor color) {
+  CS(0);
+  LCDsetRectangle(x, y, x + NOTE_WIDTH - 1, y + NOTE_HEIGHT - 1);
+  drawNoteHelper(x, y, color);
+  CS(1);
+  LCDgoto(0, 0);
+}
+
+void LCDmoveNoteVertical(int col, int oldy, bool up, NoteColor color) {
+  int x = col_x[col];
+  bool down = !up;
+  CS(0);
+  LCDsetRectangle(
+    x,                  oldy - up,
+    x + NOTE_WIDTH - 1, oldy + down + NOTE_HEIGHT - 1
+  );
+  if (down) {
+    drawBoardLine(x, oldy, NOTE_WIDTH);
+  }
+  drawNoteHelper(x, oldy - up + down, color);
+  if (up) {
+    drawBoardLine(x, oldy + NOTE_HEIGHT - 1, NOTE_WIDTH);
+  }
+  CS(1);
+  LCDgoto(0, 0);
 }

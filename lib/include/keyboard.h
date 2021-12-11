@@ -5,19 +5,21 @@
 
 // Public interface for 4x4 keyboard driver
 
-// Key codes
-// two columns can be pressed together, two rows can't
-// thus lowest four bits is the row 
-// and highest four bits is the column 
+// Key code definitions and utilities
 
-typedef unsigned char kb_num_t;
 
+// for space efficiency we make keys 1 byte in size
+typedef uint8_t kb_num_t;
+
+// the following take key num in 
 #define KB_ROW_KEY(n) (kb_num_t)(1 << (n + 3))
 #define KB_COL_KEY(n) (kb_num_t)(1 << (n - 1))
 
 #define ROW(n) KB_ROW_KEY(n)
 #define COL(n) KB_COL_KEY(n)
 
+// lowest four bits is the row 
+// highest four bits is the column 
 typedef enum {
   KB_0     = ROW(4) | COL(2),
   KB_1     = ROW(1) | COL(1),
@@ -46,6 +48,10 @@ static_assert(sizeof(KbKey) == sizeof(kb_num_t), "kbkey takes more than 1 byte")
 #define GET_ROW(key) (key >> 4)
 #define GET_COL(key) (key & (kb_num_t)0xf)
 
+// unsigned int because that's what __buildin_clz needs
+// there are no versions of it for smaller types
+// and defining it as inline assembly could be bad for the compiler,
+// as well as preventing the usage of the macro inside static_assert
 #define GET_NUM(SRC, key) \
   ((8 * sizeof(unsigned int)) - __builtin_clz((unsigned int)GET_##SRC(key)))
 
@@ -55,16 +61,19 @@ static_assert(sizeof(KbKey) == sizeof(kb_num_t), "kbkey takes more than 1 byte")
 
 static_assert(GET_ROW_NUM(KB_ROW_KEY(1)) == 1, "bad GET_ROW_NUM calc");
 
+
+
+// Keyboard interaction methods
+
 // Initalizes the keyboard (as in lecture slides)
 void kb_init();
 
+// Checks if key is held
 bool isKeyHeld(KbKey key);
+
+// Gets next key press to detect.
+// Holding a key only generates one press
 KbKey getNext();
-
-
-// extern int key_col;
-// extern int key_row;
-
 
 
 #endif // KEYBOARD_H

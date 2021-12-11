@@ -19,3 +19,7 @@ cmake-build-debug
 *.d
 *.bak
 *~
+
+# python stuff
+
+__pycache__

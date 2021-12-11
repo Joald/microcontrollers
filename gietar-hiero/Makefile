@@ -34,7 +34,8 @@ CFLAGS = $(FLAGS) \
     -I/opt/arm/stm32/inc \
     -I/opt/arm/stm32/CMSIS/Include \
     -I/opt/arm/stm32/CMSIS/Device/ST/STM32F4xx/Include \
-    -iquote ../lib/include
+    -iquote ../lib/include \
+    -iquote .
 LDFLAGS = $(FLAGS) -Wl,--gc-sections -nostartfiles \
     -L/opt/arm/stm32/lds -Tstm32f411re.lds \
 
