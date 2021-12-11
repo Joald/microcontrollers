@@ -26,8 +26,9 @@ typedef enum {
 
 
 void LCDdrawBoard();
-void LCDdrawNote(int col, int y, NoteColor color);
+void LCDdrawNote(int col, int y);
 void LCDdrawNoteXY(int x, int y, NoteColor color);
-void LCDmoveNoteVertical(int col, int oldy, bool up, NoteColor color);
+void LCDmoveNoteVertical(int col, int oldy, bool up);
+void LCDremoveNote(int col, int y);
 
 #endif // GUITAR_HERO_LCD_H

@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <stm32.h>
+#include <stdlib.h>
 
 #include <gpio.h>
 #include <fonts.h>
@@ -39,6 +40,19 @@ void setTim3Params(int prescaler, int max_value) {
     } \
   } while (false)
 
+void updateRedNotePos(int red_note_y) {
+  LCDgoto(0, sizeof("Red note y = ") - 1);
+  int divisor = 100;
+  for (int i = 0; i < 3; ++i) {
+    div_t divv = div(red_note_y, divisor);
+    LCDputcharWrap('0' + divv.quot);
+    red_note_y = divv.rem;
+    divisor /= 10;
+  }
+}
+
+#define FRET_PRESS_Y 134
+
 int main() {
   initDmaUart();
   DMA_DBG("DMA INIT DONE\n");
@@ -54,7 +68,7 @@ int main() {
 
   LCDdrawBoard();
   
-  // LCD_PRINT("Row: ");
+  // LCD_PRINT("Red note y = 060");
   
   // LCDputcharWrap('-');
   // LCD_PRINT(", Col: ");
@@ -66,32 +80,32 @@ int main() {
 
   bool hash_displayed = false;  
 
-  LCDdrawNote(4, 30, N_BLUE);
-  LCDdrawNote(3, 40, N_GREEN);
-  LCDdrawNote(2, 50, N_YELLOW);
-  LCDdrawNote(1, 60, N_RED);
+  LCDdrawNote(4, 30);
+  LCDdrawNote(3, 40);
+  LCDdrawNote(2, 50);
+  LCDdrawNote(1, 60);
 
-  int red_note_y = 60;  
+  int red_note_y = 60;
+
+  bool col_pressed[5] = {};
 
   while (true) {
     KbKey key;
     while ((key = getNext()) != KB_NOKEY) {
-      if (key == KB_1) {
-        DMA_DBG("Found key 1!\n");
-      }
       if (GET_ROW_NUM(key) == 1) {
-        DMA_DBG("ROW_NUM = 1!\n");
+        int col = GET_COL_NUM(key);
+        col_pressed[col] = true;
+        LCDdrawNote(col, FRET_PRESS_Y);
       }
-      if (GET_COL_NUM(key) == 1) {
-        DMA_DBG("COL_NUM = 1!\n");
-      }
-      if (key == KB_2) {
-        LCDmoveNoteVertical(1, red_note_y, true, N_RED);
+      if (key == KB_C) {
+        LCDmoveNoteVertical(1, red_note_y, true);
         red_note_y--;
+        // updateRedNotePos(red_note_y);
       }
-      if (key == KB_8) {
-        LCDmoveNoteVertical(1, red_note_y, false, N_RED);
+      if (key == KB_D) {
+        LCDmoveNoteVertical(1, red_note_y, false);
         red_note_y++;
+        // updateRedNotePos(red_note_y);
       }
       if (key == KB_POUND && !hash_displayed) {
         LCDgoto(3, 7);
@@ -108,16 +122,21 @@ int main() {
       LCDputchar(' ');        
       hash_displayed = false;
     }
+    for (int i = 1; i <= 4; ++i) {
+      if (col_pressed[i] && !isKeyHeld(KB_ROW_KEY(1) | KB_COL_KEY(i))) {
+        LCDremoveNote(i, FRET_PRESS_Y);
+      }
+    }
 
-    Delay(1000000);
+    Delay(10000);
   }
 }
 
 /** TODO:
  X Make note drawing/moving respect edges
- * figure out which y is ok for fret press
+ X figure out which y is ok for fret press
+ X implement fret pressing
  * improve note edge visuals
- * implement fret pressing
  * add timer for moving and key for spawning notes
  *   (use keys to adjust speed)
  * combine the two to play notes

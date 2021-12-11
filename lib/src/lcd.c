@@ -362,7 +362,8 @@ static const uint16_t board_pixels[BSIZE] = {
   #include "board.txt"
 };
 
-#define BOARD_FIRST_PIXEL 0
+// Can make space above board for text display
+#define BOARD_FIRST_PIXEL CurrentFont->height
 
 void LCDdrawBoard() {
   CS(0);
@@ -404,10 +405,47 @@ static const uint16_t color_map[4] = {
   })
 
 
+typedef uint16_t (*PixelCalculator)(int x, int y, int px, int py);
+
+PixelCalculator makeDrawer(NoteColor color) {
+  uint16_t lambda(int x, int y, int px, int py) {
+    int index = py * NOTE_WIDTH + px;
+    uint16_t pixel = note_pixels[index];
+
+    if (pixel == 0x0) {
+      // draw bg
+      int board_x = x + px;
+      int board_y = y + py;
+      int board_index = board_y * LCD_PIXEL_WIDTH + board_x;
+      pixel = board_pixels[board_index];
+    } else {
+      // draw color scaled by note pixel        
+
+      // 1st attempt:
+      pixel &= color_map[color]; 
+      // pixel contains the same intensity of each color channel,
+      // so we treat it as a bitmask to reduce intensity of our desired color
+      // not a linear scale so probably won't look great
+      // result: quite rough around the edges
+      
+    }
+    return pixel;
+  }
+  return lambda;
+}
+
+uint16_t noteRemover(int x, int y, int px, int py) {
+  int board_x = x + px;
+  int board_y = y + py;
+  int board_index = board_y * LCD_PIXEL_WIDTH + board_x;
+  return board_pixels[board_index];
+}
+
+
 // Assumes CS(0) and rectangle set
 // Draws only the note with upper-left pixel at (x, y)
 // Handles top/bottom edges of the screen correctly, but not left/right
-static void drawNoteHelper(int x, int y, NoteColor color) {
+static void drawNoteHelper(int x, int y, PixelCalculator calc) {
   for (
     int py = y < BOARD_FIRST_PIXEL ? BOARD_FIRST_PIXEL - y : 0; // don't start above first pixel
     py < NOTE_HEIGHT &&
@@ -415,27 +453,7 @@ static void drawNoteHelper(int x, int y, NoteColor color) {
     ++py
   ) {
     for (int px = 0; px < NOTE_WIDTH; ++px) {
-      int index = py * NOTE_WIDTH + px;
-      uint16_t pixel = note_pixels[index];
-
-      if (pixel == 0x0) {
-        // draw bg
-        int board_x = x + px;
-        int board_y = y + py;
-        int board_index = board_y * LCD_PIXEL_WIDTH + board_x;
-        pixel = board_pixels[board_index];
-      } else {
-        // draw color scaled by note pixel        
-
-        // 1st attempt:
-        pixel &= color_map[color]; 
-        // pixel contains the same intensity of each color channel,
-        // so we treat it as a bitmask to reduce intensity of our desired color
-        // not a linear scale so probably won't look great
-        // result: quite rough around the edges
-        
-        
-      }
+      uint16_t pixel = calc(x, y, px, py);
       LCDwriteData16(pixel);
     }
   }
@@ -452,14 +470,18 @@ static void drawBoardLine(int startx, int starty, int width) {
 
 static const int col_x[5] = {-1, 0, 33, 65, 95};
 
-void LCDdrawNote(int col, int y, NoteColor color) {  
-  LCDdrawNoteXY(col_x[col], y, color);
+static const NoteColor col_color[5] = {-1, N_RED, N_YELLOW, N_GREEN, N_BLUE};
+
+void LCDdrawNote(int col, int y) {
+  int x = col_x[col];
+  NoteColor color = col_color[col];
+  LCDdrawNoteXY(x, y, color);
 }
 
 void LCDdrawNoteXY(int x, int y, NoteColor color) {
   CS(0);
   LCDsetRectangle(x, y, x + NOTE_WIDTH - 1, y + NOTE_HEIGHT - 1);
-  drawNoteHelper(x, y, color);
+  drawNoteHelper(x, y, makeDrawer(color));
   CS(1);
   LCDgoto(0, 0);
 }
@@ -469,12 +491,13 @@ void LCDdrawNoteXY(int x, int y, NoteColor color) {
 // It draws another note 1 pixel higher/lower according to passed flag
 // Also it fills the space unoccupied by the new note with background pixels
 // Doesn't draw pixels outside the screen.
-void LCDmoveNoteVertical(int col, int oldy, bool up, NoteColor color) {
+void LCDmoveNoteVertical(int col, int oldy, bool up) {
   int x = col_x[col];
+  NoteColor color = col_color[col];
   bool down = !up;
   int upper_bound = IMAX(oldy - up, BOARD_FIRST_PIXEL);
   int lower_bound = IMIN(oldy + down + NOTE_HEIGHT - 1, LCD_PIXEL_HEIGHT - 1);
-  if (upper_bound >= LCD_PIXEL_HEIGHT) {
+  if (upper_bound >= LCD_PIXEL_HEIGHT || lower_bound < BOARD_FIRST_PIXEL) {
     // nothing to draw
     return;
   }
@@ -488,7 +511,7 @@ void LCDmoveNoteVertical(int col, int oldy, bool up, NoteColor color) {
     drawBoardLine(x, oldy, NOTE_WIDTH);
   }
   
-  drawNoteHelper(x, oldy - up + down, color);
+  drawNoteHelper(x, oldy - up + down, makeDrawer(color));
 
   if (up) {
     int lower_line_y = oldy + NOTE_HEIGHT - 1;
@@ -496,6 +519,22 @@ void LCDmoveNoteVertical(int col, int oldy, bool up, NoteColor color) {
       drawBoardLine(x, lower_line_y, NOTE_WIDTH);
     }
   }
+  CS(1);
+  LCDgoto(0, 0);
+}
+
+// removes a note by filling its space with board pixels
+void LCDremoveNote(int col, int y) {
+  int x = col_x[col];
+  int upper_bound = IMAX(y, BOARD_FIRST_PIXEL);
+  int lower_bound = IMIN(y + NOTE_HEIGHT - 1, LCD_PIXEL_HEIGHT - 1);
+  if (upper_bound >= LCD_PIXEL_HEIGHT || lower_bound < BOARD_FIRST_PIXEL) {
+    // nothing to draw
+    return;
+  }
+  CS(0);
+  LCDsetRectangle(x, upper_bound, x + NOTE_WIDTH - 1, lower_bound);
+  drawNoteHelper(x, y, noteRemover);
   CS(1);
   LCDgoto(0, 0);
 }
