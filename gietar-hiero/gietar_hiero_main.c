@@ -125,6 +125,7 @@ int main() {
     for (int i = 1; i <= 4; ++i) {
       if (col_pressed[i] && !isKeyHeld(KB_ROW_KEY(1) | KB_COL_KEY(i))) {
         LCDremoveNote(i, FRET_PRESS_Y);
+        col_pressed[i] = false;
       }
     }
 

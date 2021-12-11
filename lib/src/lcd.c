@@ -1,4 +1,6 @@
 #include <stdbool.h>
+#include <assert.h>
+
 #include <delay.h>
 #include <fonts.h>
 #include <gpio.h>
@@ -363,7 +365,7 @@ static const uint16_t board_pixels[BSIZE] = {
 };
 
 // Can make space above board for text display
-#define BOARD_FIRST_PIXEL CurrentFont->height
+#define BOARD_FIRST_PIXEL 0 //CurrentFont->height
 
 void LCDdrawBoard() {
   CS(0);
@@ -407,30 +409,94 @@ static const uint16_t color_map[4] = {
 
 typedef uint16_t (*PixelCalculator)(int x, int y, int px, int py);
 
+#define GET_RED(pixel) ((pixel & LCD_COLOR_RED) >> 11)
+#define GET_GREEN(pixel) ((pixel & LCD_COLOR_GREEN) >> 5)
+#define GET_BLUE(pixel) (pixel & LCD_COLOR_BLUE)
+#define SET_RED(pixel, val) \
+  do { \
+    static_assert(sizeof(pixel) == sizeof(uint16_t), "setting color of non 16-bit value"); \
+    static_assert(sizeof(val) == sizeof(uint16_t), "setting color with non 16-bit value"); \
+    pixel &= ~LCD_COLOR_RED; \
+    pixel |= val << 11; \
+  } while (false)
+#define SET_GREEN(pixel, val) \
+  do { \
+    static_assert(sizeof(pixel) == sizeof(uint16_t), "setting color of non 16-bit value"); \
+    static_assert(sizeof(val) == sizeof(uint16_t), "setting color with non 16-bit value"); \
+    pixel &= ~LCD_COLOR_GREEN; \
+    pixel |= val << 5; \
+  } while (false)
+#define SET_BLUE(pixel, val) \
+  do { \
+    static_assert(sizeof(pixel) == sizeof(uint16_t), "setting color of non 16-bit value"); \
+    static_assert(sizeof(val) == sizeof(uint16_t), "setting color with non 16-bit value"); \
+    pixel &= ~LCD_COLOR_BLUE; \
+    pixel |= val; \
+  } while (false)
+#define SHIFT_RED(val) (val << 11)
+#define SHIFT_GREEN(val) (val << 5)
+#define SHIFT_BLUE(val) (val)
+static_assert(
+  ( GET_RED(LCD_COLOR_WHITE) << 11 
+  | GET_GREEN(LCD_COLOR_WHITE) << 5 
+  | GET_BLUE(LCD_COLOR_WHITE) 
+  ) == LCD_COLOR_WHITE, "bad color getters");
+static_assert(GET_RED(LCD_COLOR_WHITE) << 11 == LCD_COLOR_RED, "bad red getter");
+static_assert(GET_GREEN(LCD_COLOR_WHITE) << 5 == LCD_COLOR_GREEN, "bad green getter");
+static_assert(GET_BLUE(LCD_COLOR_WHITE) == LCD_COLOR_BLUE, "bad blue getter");
+
+static_assert(
+  ( SHIFT_RED(GET_RED(LCD_COLOR_WHITE)) 
+  | SHIFT_GREEN(GET_GREEN(LCD_COLOR_WHITE)) 
+  | SHIFT_BLUE(GET_BLUE(LCD_COLOR_WHITE))
+  ) == LCD_COLOR_WHITE, "bad shift");
+static_assert(SHIFT_RED(GET_RED(LCD_COLOR_WHITE)) == LCD_COLOR_RED, "bad red shift");
+static_assert(SHIFT_GREEN(GET_GREEN(LCD_COLOR_WHITE)) == LCD_COLOR_GREEN, "bad green shift");
+static_assert(SHIFT_BLUE(GET_BLUE(LCD_COLOR_WHITE)) == LCD_COLOR_BLUE, "bad blue shift");
+
+#define MAX_RED GET_RED(LCD_COLOR_RED)
+#define MAX_GREEN GET_GREEN(LCD_COLOR_GREEN)
+#define MAX_BLUE GET_BLUE(LCD_COLOR_BLUE)
+
+uint16_t color_pixel = 0;
+
 PixelCalculator makeDrawer(NoteColor color) {
+  color_pixel = color_map[color];
   uint16_t lambda(int x, int y, int px, int py) {
     int index = py * NOTE_WIDTH + px;
-    uint16_t pixel = note_pixels[index];
+    uint16_t alpha = note_pixels[index];
 
-    if (pixel == 0x0) {
-      // draw bg
-      int board_x = x + px;
-      int board_y = y + py;
-      int board_index = board_y * LCD_PIXEL_WIDTH + board_x;
-      pixel = board_pixels[board_index];
-    } else {
-      // draw color scaled by note pixel        
+    int board_x = x + px;
+    int board_y = y + py;
+    int board_index = board_y * LCD_PIXEL_WIDTH + board_x;
 
-      // 1st attempt:
-      pixel &= color_map[color]; 
-      // pixel contains the same intensity of each color channel,
-      // so we treat it as a bitmask to reduce intensity of our desired color
-      // not a linear scale so probably won't look great
-      // result: quite rough around the edges
-      
-    }
-    return pixel;
-  }
+    uint16_t board_pixel = board_pixels[board_index];
+
+    // make calculations in 32-bit signed ints to minimize precision loss
+
+    int32_t board_r = GET_RED(board_pixel);
+    int32_t board_g = GET_GREEN(board_pixel);
+    int32_t board_b = GET_BLUE(board_pixel);    
+
+    // normally alpha is the same number for each channel
+    // but the it was easier to split it
+    // and sacrifice some memory efficiency
+
+    int32_t alpha_r = GET_RED(alpha);
+    int32_t alpha_g = GET_GREEN(alpha);
+    int32_t alpha_b = GET_BLUE(alpha);
+
+    int32_t color_r = GET_RED(color_pixel);
+    int32_t color_g = GET_GREEN(color_pixel);
+    int32_t color_b = GET_BLUE(color_pixel);
+
+    uint16_t pixel_r = color_r * alpha_r / MAX_RED   + board_r * (MAX_RED   - alpha_r) / MAX_RED;
+    uint16_t pixel_g = color_g * alpha_g / MAX_GREEN + board_g * (MAX_GREEN - alpha_g) / MAX_GREEN;
+    uint16_t pixel_b = color_b * alpha_b / MAX_BLUE  + board_b * (MAX_BLUE  - alpha_b) / MAX_BLUE;
+
+    return SHIFT_RED(pixel_r) | SHIFT_GREEN(pixel_g) | SHIFT_BLUE(pixel_b);
+  } // lambda
+
   return lambda;
 }
 

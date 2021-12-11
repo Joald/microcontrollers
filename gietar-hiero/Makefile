@@ -7,7 +7,7 @@ OBJCOPY = arm-eabi-objcopy
 FLAGS = -mthumb -mcpu=cortex-m4
 CPPFLAGS = -DSTM32F411xE
 CFLAGS = $(FLAGS) \
-    -std=c2x \
+    -std=gnu2x \
     -DDEBUG \
     -Wall -Wextra -Wpedantic -Wshadow -Wunused \
     -Wcast-align \
