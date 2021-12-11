@@ -112,3 +112,19 @@ int main() {
     Delay(1000000);
   }
 }
+
+/** TODO:
+ X Make note drawing/moving respect edges
+ * figure out which y is ok for fret press
+ * improve note edge visuals
+ * implement fret pressing
+ * add timer for moving and key for spawning notes
+ *   (use keys to adjust speed)
+ * combine the two to play notes
+ * then communicate with laptop to get some actual "music"
+ * and add basic scoring
+ * STRETCH:
+ * maybe add loading screen, menu etc.
+ * use received data from computer to "play" sounds to a diode
+ * get a speaker to 
+ */

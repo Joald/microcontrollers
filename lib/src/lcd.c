@@ -362,6 +362,8 @@ static const uint16_t board_pixels[BSIZE] = {
   #include "board.txt"
 };
 
+#define BOARD_FIRST_PIXEL 0
+
 void LCDdrawBoard() {
   CS(0);
   LCDsetFullRectangle();
@@ -389,11 +391,33 @@ static const uint16_t color_map[4] = {
   LCD_BETTER_RED
 };
 
+#define IMIN(m1, m2) \
+  ({ \
+    int l = m1, r = m2; \
+    l > r ? r : l; \
+  })
+
+#define IMAX(m1, m2) \
+  ({ \
+    int l = m1, r = m2; \
+    l < r ? r : l; \
+  })
+
+
+// Assumes CS(0) and rectangle set
+// Draws only the note with upper-left pixel at (x, y)
+// Handles top/bottom edges of the screen correctly, but not left/right
 static void drawNoteHelper(int x, int y, NoteColor color) {
-  for (int py = 0; py < NOTE_HEIGHT; ++py) {
+  for (
+    int py = y < BOARD_FIRST_PIXEL ? BOARD_FIRST_PIXEL - y : 0; // don't start above first pixel
+    py < NOTE_HEIGHT &&
+      py + y < LCD_PIXEL_HEIGHT; // don't go below last pixel
+    ++py
+  ) {
     for (int px = 0; px < NOTE_WIDTH; ++px) {
       int index = py * NOTE_WIDTH + px;
       uint16_t pixel = note_pixels[index];
+
       if (pixel == 0x0) {
         // draw bg
         int board_x = x + px;
@@ -403,10 +427,13 @@ static void drawNoteHelper(int x, int y, NoteColor color) {
       } else {
         // draw color scaled by note pixel        
 
+        // 1st attempt:
+        pixel &= color_map[color]; 
         // pixel contains the same intensity of each color channel,
         // so we treat it as a bitmask to reduce intensity of our desired color
-        // not a linear scale but will probably look good enough
-        pixel &= color_map[color]; 
+        // not a linear scale so probably won't look great
+        // result: quite rough around the edges
+        
         
       }
       LCDwriteData16(pixel);
@@ -437,20 +464,37 @@ void LCDdrawNoteXY(int x, int y, NoteColor color) {
   LCDgoto(0, 0);
 }
 
+
+// This function assumes that a note is displayed in column col at y=oldy
+// It draws another note 1 pixel higher/lower according to passed flag
+// Also it fills the space unoccupied by the new note with background pixels
+// Doesn't draw pixels outside the screen.
 void LCDmoveNoteVertical(int col, int oldy, bool up, NoteColor color) {
   int x = col_x[col];
   bool down = !up;
+  int upper_bound = IMAX(oldy - up, BOARD_FIRST_PIXEL);
+  int lower_bound = IMIN(oldy + down + NOTE_HEIGHT - 1, LCD_PIXEL_HEIGHT - 1);
+  if (upper_bound >= LCD_PIXEL_HEIGHT) {
+    // nothing to draw
+    return;
+  }
   CS(0);
   LCDsetRectangle(
-    x,                  oldy - up,
-    x + NOTE_WIDTH - 1, oldy + down + NOTE_HEIGHT - 1
+    x,                  upper_bound,
+    x + NOTE_WIDTH - 1, lower_bound
   );
-  if (down) {
+  
+  if (down && oldy >= BOARD_FIRST_PIXEL) {
     drawBoardLine(x, oldy, NOTE_WIDTH);
   }
+  
   drawNoteHelper(x, oldy - up + down, color);
+
   if (up) {
-    drawBoardLine(x, oldy + NOTE_HEIGHT - 1, NOTE_WIDTH);
+    int lower_line_y = oldy + NOTE_HEIGHT - 1;
+    if (lower_line_y < LCD_PIXEL_HEIGHT) {
+      drawBoardLine(x, lower_line_y, NOTE_WIDTH);
+    }
   }
   CS(1);
   LCDgoto(0, 0);
