@@ -39,11 +39,6 @@
 #define RCC_LCD_SDA   xcat3(RCC_AHB1ENR_GPIO, LCD_SDA_GPIO_N, EN)
 #define RCC_LCD_SCK   xcat3(RCC_AHB1ENR_GPIO, LCD_SCK_GPIO_N, EN)
 
-/* Screen size in pixels, left top corner has coordinates (0, 0). */
-
-#define LCD_PIXEL_WIDTH   128
-#define LCD_PIXEL_HEIGHT  160
-
 /* Some color definitions */
 
 #define LCD_COLOR_WHITE    0xFFFF
@@ -359,6 +354,8 @@ void LCDsetFont(const font_t *font) {
   YOffset = 0; //(LCD_PIXEL_HEIGHT - TextHeight * CurrentFont->height) / 2;
 }
 
+// Advanced interface implementation
+
 #define BSIZE (LCD_PIXEL_WIDTH * LCD_PIXEL_HEIGHT)
 static const uint16_t board_pixels[BSIZE] = { 
   #include "board.txt"
@@ -460,8 +457,58 @@ static_assert(SHIFT_BLUE(GET_BLUE(LCD_COLOR_WHITE)) == LCD_COLOR_BLUE, "bad blue
 
 uint16_t color_pixel = 0;
 
-PixelCalculator makeDrawer(NoteColor color) {
+uint16_t calculateAlpha(uint16_t bg_pixel, uint16_t img_pixel, uint16_t img_alpha) {
+  // make calculations in 32-bit signed ints to minimize precision loss
+
+  int32_t board_r = GET_RED(bg_pixel);
+  int32_t board_g = GET_GREEN(bg_pixel);
+  int32_t board_b = GET_BLUE(bg_pixel);    
+
+  // normally alpha is the same number for each channel
+  // but the it was easier to split it
+  // and sacrifice some memory efficiency
+
+  int32_t alpha_r = GET_RED(img_alpha);
+  int32_t alpha_g = GET_GREEN(img_alpha);
+  int32_t alpha_b = GET_BLUE(img_alpha);
+
+  int32_t color_r = GET_RED(img_pixel);
+  int32_t color_g = GET_GREEN(img_pixel);
+  int32_t color_b = GET_BLUE(img_pixel);
+
+  uint16_t pixel_r = color_r * alpha_r / MAX_RED   + board_r * (MAX_RED   - alpha_r) / MAX_RED;
+  uint16_t pixel_g = color_g * alpha_g / MAX_GREEN + board_g * (MAX_GREEN - alpha_g) / MAX_GREEN;
+  uint16_t pixel_b = color_b * alpha_b / MAX_BLUE  + board_b * (MAX_BLUE  - alpha_b) / MAX_BLUE;
+
+  return SHIFT_RED(pixel_r) | SHIFT_GREEN(pixel_g) | SHIFT_BLUE(pixel_b);
+}
+
+#define BOARD_INDEX(x, y) ((y) * LCD_PIXEL_WIDTH + (x))
+
+static uint16_t getBoardPixelWhenFretPressed(int board_x, int board_y, int col_offset) {
+  uint16_t board_pixel = board_pixels[BOARD_INDEX(board_x, board_y)];
+
+  if (FRET_PRESS_Y <= board_y && board_y < FRET_PRESS_Y + 20) {
+    int fret_x = col_offset;
+    int fret_y = board_y - FRET_PRESS_Y;
+
+    int fret_index = fret_y * NOTE_WIDTH + fret_x;
+    
+    uint16_t fret_alpha = note_pixels[fret_index];
+    uint16_t fret_pixel = color_pixel;
+
+    return calculateAlpha(board_pixel, fret_pixel, fret_alpha);
+  } else {
+    return board_pixel;
+  }
+}
+
+// call this before drawing notes
+void LCDsetColorPixel(NoteColor color) {
   color_pixel = color_map[color];
+}
+
+PixelCalculator makeDrawer(bool isFretPressed) {
   uint16_t lambda(int x, int y, int px, int py) {
     int index = py * NOTE_WIDTH + px;
     uint16_t alpha = note_pixels[index];
@@ -472,32 +519,22 @@ PixelCalculator makeDrawer(NoteColor color) {
 
     uint16_t board_pixel = board_pixels[board_index];
 
-    // make calculations in 32-bit signed ints to minimize precision loss
-
-    int32_t board_r = GET_RED(board_pixel);
-    int32_t board_g = GET_GREEN(board_pixel);
-    int32_t board_b = GET_BLUE(board_pixel);    
-
-    // normally alpha is the same number for each channel
-    // but the it was easier to split it
-    // and sacrifice some memory efficiency
-
-    int32_t alpha_r = GET_RED(alpha);
-    int32_t alpha_g = GET_GREEN(alpha);
-    int32_t alpha_b = GET_BLUE(alpha);
-
-    int32_t color_r = GET_RED(color_pixel);
-    int32_t color_g = GET_GREEN(color_pixel);
-    int32_t color_b = GET_BLUE(color_pixel);
-
-    uint16_t pixel_r = color_r * alpha_r / MAX_RED   + board_r * (MAX_RED   - alpha_r) / MAX_RED;
-    uint16_t pixel_g = color_g * alpha_g / MAX_GREEN + board_g * (MAX_GREEN - alpha_g) / MAX_GREEN;
-    uint16_t pixel_b = color_b * alpha_b / MAX_BLUE  + board_b * (MAX_BLUE  - alpha_b) / MAX_BLUE;
-
-    return SHIFT_RED(pixel_r) | SHIFT_GREEN(pixel_g) | SHIFT_BLUE(pixel_b);
+    return calculateAlpha(board_pixel, color_pixel, alpha);
   } // lambda
 
-  return lambda;
+  uint16_t lambdaPressed(int x, int y, int px, int py) {
+    int index = py * NOTE_WIDTH + px;
+    uint16_t alpha = note_pixels[index];
+
+    int board_x = x + px;
+    int board_y = y + py;
+
+    uint16_t bg_pixel = getBoardPixelWhenFretPressed(board_x, board_y, px);
+
+    return calculateAlpha(bg_pixel, color_pixel, alpha);
+  } // lambdaPressed
+
+  return isFretPressed ? lambdaPressed : lambda;
 }
 
 uint16_t noteRemover(int x, int y, int px, int py) {
@@ -507,6 +544,13 @@ uint16_t noteRemover(int x, int y, int px, int py) {
   return board_pixels[board_index];
 }
 
+uint16_t noteRemoverFretPressed(int x, int y, int px, int py) {
+  // TODO
+  int board_x = x + px;
+  int board_y = y + py;
+  int board_index = board_y * LCD_PIXEL_WIDTH + board_x;
+  return board_pixels[board_index];
+}
 
 // Assumes CS(0) and rectangle set
 // Draws only the note with upper-left pixel at (x, y)
@@ -525,29 +569,29 @@ static void drawNoteHelper(int x, int y, PixelCalculator calc) {
   }
 }
 
-static void drawBoardLine(int startx, int starty, int width) {
-  // assert(startx + width < LCD_PIXEL_WIDTH);
-  int start_index = startx + starty * LCD_PIXEL_WIDTH;
-
-  for (int i = 0; i < width; ++i) {
-    LCDwriteData16(board_pixels[start_index + i]);
-  }
-}
-
 static const int col_x[5] = {-1, 0, 33, 65, 95};
 
 static const NoteColor col_color[5] = {-1, N_RED, N_YELLOW, N_GREEN, N_BLUE};
 
+static void drawBoardLine(int col, int starty, int width, bool isFretPressed) {
+  int startx = col_x[col];
+  for (int i = 0; i < width; ++i) {
+    uint16_t pixel = isFretPressed
+      ? getBoardPixelWhenFretPressed(startx + i, starty, i) 
+      : board_pixels[BOARD_INDEX(startx + i, starty)];
+    
+    LCDwriteData16(pixel);
+  }
+}
+
+
 void LCDdrawNote(int col, int y) {
   int x = col_x[col];
   NoteColor color = col_color[col];
-  LCDdrawNoteXY(x, y, color);
-}
-
-void LCDdrawNoteXY(int x, int y, NoteColor color) {
+  LCDsetColorPixel(color);
   CS(0);
   LCDsetRectangle(x, y, x + NOTE_WIDTH - 1, y + NOTE_HEIGHT - 1);
-  drawNoteHelper(x, y, makeDrawer(color));
+  drawNoteHelper(x, y, makeDrawer(LCDisFretPressed(col)));
   CS(1);
   LCDgoto(0, 0);
 }
@@ -559,32 +603,42 @@ void LCDdrawNoteXY(int x, int y, NoteColor color) {
 // Doesn't draw pixels outside the screen.
 void LCDmoveNoteVertical(int col, int oldy, bool up) {
   int x = col_x[col];
+  
   NoteColor color = col_color[col];
+  LCDsetColorPixel(color);
+
   bool down = !up;
+  bool fret_pressed = LCDisFretPressed(col);
+
   int upper_bound = IMAX(oldy - up, BOARD_FIRST_PIXEL);
   int lower_bound = IMIN(oldy + down + NOTE_HEIGHT - 1, LCD_PIXEL_HEIGHT - 1);
+
   if (upper_bound >= LCD_PIXEL_HEIGHT || lower_bound < BOARD_FIRST_PIXEL) {
     // nothing to draw
     return;
   }
+  
   CS(0);
   LCDsetRectangle(
     x,                  upper_bound,
     x + NOTE_WIDTH - 1, lower_bound
   );
-  
+
+  // if moving down, overwrite old first row  
   if (down && oldy >= BOARD_FIRST_PIXEL) {
-    drawBoardLine(x, oldy, NOTE_WIDTH);
+    drawBoardLine(col, oldy, NOTE_WIDTH, fret_pressed);
   }
   
-  drawNoteHelper(x, oldy - up + down, makeDrawer(color));
+  drawNoteHelper(x, oldy - up + down, makeDrawer(fret_pressed));
 
+  // if moving up, overwrite old last row
   if (up) {
     int lower_line_y = oldy + NOTE_HEIGHT - 1;
     if (lower_line_y < LCD_PIXEL_HEIGHT) {
-      drawBoardLine(x, lower_line_y, NOTE_WIDTH);
+      drawBoardLine(col, lower_line_y, NOTE_WIDTH, fret_pressed);
     }
   }
+
   CS(1);
   LCDgoto(0, 0);
 }
@@ -603,4 +657,20 @@ void LCDremoveNote(int col, int y) {
   drawNoteHelper(x, y, noteRemover);
   CS(1);
   LCDgoto(0, 0);
+}
+
+bool col_pressed[5] = {};
+
+void LCDpressFret(int col) {
+  col_pressed[col] = true;
+  LCDdrawNote(col, FRET_PRESS_Y);
+}
+
+void LCDletGoOfFret(int col) {
+  LCDremoveNote(col, FRET_PRESS_Y);
+  col_pressed[col] = false;
+}
+
+bool LCDisFretPressed(int col) {
+  return col_pressed[col];
 }

@@ -302,7 +302,7 @@ bool kb_scan() {
         // ???
       } else {
         storeKeyPress(key);
-        DMA_DBG("Stored!\n");
+        // DMA_DBG("Stored!\n");
       }
       new_key_mask |= key_mask;
 

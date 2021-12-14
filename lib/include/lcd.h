@@ -5,17 +5,24 @@
 
 #include <fonts.h>
 
-// functions exported by the original driver
+// symbols exported by the original driver
 void LCDconfigure(void);
 void LCDclear(void);
 void LCDgoto(int textLine, int charPos);
 void LCDputchar(char c);
 void LCDputcharWrap(char c);
 
-// additional functions from the basic driver, now exported
+// additional symbols from the basic driver, now exported
 void LCDsetFont(const font_t *font);
 
+/* Screen size in pixels, left top corner has coordinates (0, 0). */
+
+#define LCD_PIXEL_WIDTH   128
+#define LCD_PIXEL_HEIGHT  160
+
 // new functionality for drawing the game
+
+#define FRET_PRESS_Y 134
 
 typedef enum {
   N_BLUE,
@@ -30,5 +37,7 @@ void LCDdrawNote(int col, int y);
 void LCDdrawNoteXY(int x, int y, NoteColor color);
 void LCDmoveNoteVertical(int col, int oldy, bool up);
 void LCDremoveNote(int col, int y);
-
+void LCDpressFret(int col);
+void LCDletGoOfFret(int col);
+bool LCDisFretPressed(int col);
 #endif // GUITAR_HERO_LCD_H
