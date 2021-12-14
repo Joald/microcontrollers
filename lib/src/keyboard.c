@@ -322,7 +322,7 @@ bool kb_scan() {
   return pressed_key_mask != 0;
 }
 
-void kb_init() {
+void initKb() {
   static_assert(KB_ROW_PIN_MASK == KB_ROW_PR_MASK, "Pin and PR masks different");
   static_assert(KB_ROW_PIN_MASK == 64+128+256+512, "Pin mask is not exactly bits 6-9");
   

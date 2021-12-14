@@ -66,7 +66,7 @@ static_assert(GET_ROW_NUM(KB_ROW_KEY(1)) == 1, "bad GET_ROW_NUM calc");
 // Keyboard interaction methods
 
 // Initalizes the keyboard (as in lecture slides)
-void kb_init();
+void initKb();
 
 // Checks if key is held
 bool isKeyHeld(KbKey key);

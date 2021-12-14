@@ -14,7 +14,7 @@
 #include "lcd.h"
 
 
-void lcd_init() {
+void initLcd() {
   LCDconfigure();
   LCDsetFont(&font8x16);
   LCDclear();
@@ -116,11 +116,11 @@ int main() {
   // DMA_DBG("DMA INIT DONE\n");
 
   // DMA_DBG("KB INIT START\n");
-  kb_init();
+  initKb();
   // DMA_DBG("KB INIT DONE\n");
 
   // DMA_DBG("LCD INIT\n");
-  lcd_init();  
+  initLcd();  
   DMA_DBG("LCD INIT DONE\n");
   
   LCDdrawBoard();
@@ -168,11 +168,11 @@ int main() {
           DMA_DBG("Fall off!\n");
         }
       }
-      if (key == KB_C) {
+      if (key == KB_C && post_counter_max > 1) {
         post_counter_max >>= 1;
         DMA_DBG("Speeding up!\n");
       }
-      if (key == KB_D) {
+      if (key == KB_D && post_counter_max < 1 << 63) {
         post_counter_max <<= 1;
         DMA_DBG("Slowing down!\n");
       }
