@@ -38,6 +38,6 @@ void LCDdrawNoteXY(int x, int y, NoteColor color);
 void LCDmoveNoteVertical(int col, int oldy, bool up);
 void LCDremoveNote(int col, int y);
 void LCDpressFret(int col);
-void LCDletGoOfFret(int col);
+void LCDreleaseFret(int col);
 bool LCDisFretPressed(int col);
 #endif // GUITAR_HERO_LCD_H

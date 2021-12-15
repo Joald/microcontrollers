@@ -50,7 +50,7 @@ LIB_SRC_DIR = ../lib/src
 LIB_SRC := $(LIB_SRC_DIR)/lcd.c $(LIB_SRC_DIR)/keyboard.c $(LIB_SRC_DIR)/dma_uart.c
 LIB_OBJ := $(LIB_SRC:$(LIB_SRC_DIR)/%.c=%.o)
 
-OBJECTS = $(PROJ_NAME)_main.o $(LIB_OBJ) $(FW_OBJ)
+OBJECTS = $(PROJ_NAME)_main.o $(LIB_OBJ) $(FW_OBJ) game.o
 TARGET = $(PROJ_NAME)
 
 .SECONDARY: $(TARGET).elf $(OBJECTS)

@@ -666,7 +666,7 @@ void LCDpressFret(int col) {
   LCDdrawNote(col, FRET_PRESS_Y);
 }
 
-void LCDletGoOfFret(int col) {
+void LCDreleaseFret(int col) {
   LCDremoveNote(col, FRET_PRESS_Y);
   col_pressed[col] = false;
 }

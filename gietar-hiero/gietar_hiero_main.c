@@ -41,22 +41,22 @@ void setTim5Params(int prescaler, int max_value) {
     } \
   } while (false)
 
-void updateRedNotePos(int y) {
-  LCDgoto(0, sizeof("Red note y = ") - 1);
-  int divisor = 100;
-  if (y < 0) {
-    divisor /= 10;
-    y = -y;
-    LCDputchar('-');
-  }
+// void updateRedNotePos(int y) {
+//   LCDgoto(0, sizeof("Red note y = ") - 1);
+//   int divisor = 100;
+//   if (y < 0) {
+//     divisor /= 10;
+//     y = -y;
+//     LCDputchar('-');
+//   }
   
-  while (divisor > 0) {
-    div_t divv = div(y, divisor);
-    LCDputchar('0' + divv.quot);
-    y = divv.rem;
-    divisor /= 10;
-  }
-}
+//   while (divisor > 0) {
+//     div_t divv = div(y, divisor);
+//     LCDputchar('0' + divv.quot);
+//     y = divv.rem;
+//     divisor /= 10;
+//   }
+// }
 
 
 void initGameTimer() {
@@ -86,7 +86,7 @@ void initGameTimer() {
 
 uint64_t post_counter = 0;
 uint64_t post_counter_max = 1;// << 20;
-int red_note_y = 60;
+// int red_note_y = 60;
 bool fall_on = false;
 
 atomic_int to_move = 0;
@@ -145,17 +145,21 @@ int main() {
 
   // bool hash_displayed = false;  
 
-  LCDdrawNote(4, 30);
-  LCDdrawNote(3, 40);
-  LCDdrawNote(2, 50);
-  LCDdrawNote(1, 60);
+  // LCDdrawNote(4, 30);
+  // LCDdrawNote(3, 40);
+  // LCDdrawNote(2, 50);
+  // LCDdrawNote(1, 60);
+  spawnNote(1);
+  spawnNote(2);
+  spawnNote(3);
+  spawnNote(4);
 
   while (true) {
     KbKey key;
     while ((key = getNext()) != KB_NOKEY) {
       if (GET_ROW_NUM(key) == 1) {
         int col = GET_COL_NUM(key);
-        LCDpressFret(col);
+        handleFretPress(col);
       }
       // if (key == KB_0) {
       //   LCDdrawBoard();
@@ -176,16 +180,16 @@ int main() {
         post_counter_max <<= 1;
         DMA_DBG("Slowing down!\n");
       }
-      if (key == KB_8) {
-        LCDmoveNoteVertical(1, red_note_y, true);
-        red_note_y--;
-        updateRedNotePos(red_note_y);
-      }
-      if (key == KB_0) {
-        LCDmoveNoteVertical(1, red_note_y, false);
-        red_note_y++;
-        updateRedNotePos(red_note_y);
-      }
+      // if (key == KB_8) {
+      //   LCDmoveNoteVertical(1, red_note_y, true);
+      //   red_note_y--;
+      //   updateRedNotePos(red_note_y);
+      // }
+      // if (key == KB_0) {
+      //   LCDmoveNoteVertical(1, red_note_y, false);
+      //   red_note_y++;
+      //   updateRedNotePos(red_note_y);
+      // }
       // if (key == KB_POUND && !hash_displayed) {
       //   LCDgoto(3, 7);
       //   LCDputchar('#');
@@ -203,17 +207,18 @@ int main() {
     // }
     for (int i = 1; i <= 4; ++i) {
       if (LCDisFretPressed(i) && !isKeyHeld(KB_ROW_KEY(1) | KB_COL_KEY(i))) {
-        LCDletGoOfFret(i);
+        handleFretRelease(i);
       }
     }
     int moves = atomic_exchange(&to_move, 0);
     for (int i = 0; i < moves; ++i) {
-      LCDmoveNoteVertical(1, red_note_y, false);
-      red_note_y++;
-      if (red_note_y == LCD_PIXEL_HEIGHT + 5) {
-        red_note_y = -30;
-      }
-      updateRedNotePos(red_note_y);
+      // LCDmoveNoteVertical(1, red_note_y, false);
+      // red_note_y++;
+      // if (red_note_y == LCD_PIXEL_HEIGHT + 5) {
+      //   red_note_y = -30;
+      // }
+      // updateRedNotePos(red_note_y);
+      moveNotes();
     }
     Delay(10000);
   }
@@ -227,7 +232,7 @@ int main() {
  X add timer for moving and key for spawning notes
  X   (use keys to adjust speed)
  *   (find best speed?)
- * combine the two to play notes
+ ? combine the two to play notes
  * then communicate with laptop to get some actual "music"
  * and add basic scoring
  * STRETCH:

@@ -7,15 +7,12 @@
 #include "keyboard.h"
 
 //// <DEBUG>
-#include "dma_uart.h"
+// #include "dma_uart.h"
 //// </DEBUG>
 
 int key_col = 0;
 int key_row = 0;
 
-
-#define N_COLS 4
-#define N_ROWS 4
 
 #define KB_GPIO GPIOC
 
@@ -236,10 +233,10 @@ KbKey getNext() {
       return rv;
     }
     // buffer changed between read and write, retry
-    DMA_DBG("Retrying...\n");
+    // DMA_DBG("Retrying...\n");
     retries++;    
   } 
-  DMA_DBG("Timeout!\n");
+  // DMA_DBG("Timeout!\n");
   // retries ran out, better luck next time...
   return KB_NOKEY;
 }

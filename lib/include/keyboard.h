@@ -2,8 +2,13 @@
 #define KEYBOARD_H
 
 #include <assert.h>
+#include <stdint.h>
+#include <stdbool.h>
 
 // Public interface for 4x4 keyboard driver
+
+#define N_COLS 4
+#define N_ROWS 4
 
 // Key code definitions and utilities
 
