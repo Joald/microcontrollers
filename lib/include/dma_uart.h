@@ -21,7 +21,7 @@ void dmaRecv(char* buf); // size must be 1
 #endif
 
 // Handlers
-typedef void(*DmaUartHandler)(char*);
+typedef void(*DmaUartHandler)(const char*);
 
 #define HANDLER_TYPES 2
 

@@ -167,13 +167,9 @@ extern void DMA1_Stream6_IRQHandler() {
     DMA1->HIFCR = DMA_HIFCR_CTCIF6;
 
     if (queue.size > 0) {
-      // ignore warning as we want to use expression-statements
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
       SendQueueElem* to_send = QUEUE_POP();
-#pragma GCC diagnostic pop
       forceSend(to_send->buf, to_send->len);
-      CALL_HANDLER(H_DMA_SEND_FINISH, (char*) to_send->buf);
+      CALL_HANDLER(H_DMA_SEND_FINISH, to_send->buf);
     } else {
       CALL_HANDLER(H_DMA_SEND_FINISH, NULL);
     }
