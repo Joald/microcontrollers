@@ -13,6 +13,8 @@
 // quotation marks include to use the modified driver
 #include "lcd.h"
 
+#include "game.h"
+
 
 void initLcd() {
   LCDconfigure();
@@ -176,7 +178,7 @@ int main() {
         post_counter_max >>= 1;
         DMA_DBG("Speeding up!\n");
       }
-      if (key == KB_D && post_counter_max < 1 << 63) {
+      if (key == KB_D && post_counter_max < 1ull << 62ull) {
         post_counter_max <<= 1;
         DMA_DBG("Slowing down!\n");
       }
