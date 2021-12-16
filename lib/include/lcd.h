@@ -3,6 +3,7 @@
 
 // Adapted from the basic LCD driver provided by Marcin Peczarski and Marcin Engel
 
+#include <stdbool.h>
 #include <fonts.h>
 
 // symbols exported by the original driver
