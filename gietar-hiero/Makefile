@@ -9,7 +9,7 @@ CPPFLAGS = -DSTM32F411xE
 CFLAGS = $(FLAGS) \
     -std=gnu2x \
     -DDEBUG \
-    -Wall -Wextra -Wpedantic -Wshadow -Wunused \
+    -Wall -Wextra -Wno-pedantic -Wshadow -Wunused \
     -Wcast-align \
     -Wcast-qual -Wno-error=unused-variable \
     -Wdisabled-optimization \
@@ -18,7 +18,6 @@ CFLAGS = $(FLAGS) \
     -Wformat-y2k \
     -Wimport  -Winit-self  -Winline \
     -Winvalid-pch  -Wno-vla \
-    -Wlong-long \
     -Wmissing-field-initializers -Wmissing-format-attribute \
     -Wmissing-include-dirs -Wmissing-noreturn \
     -Wpacked -Wpointer-arith \
@@ -29,7 +28,7 @@ CFLAGS = $(FLAGS) \
     -Wunreachable-code -Wunused \
     -Wunused-parameter \
     -Wvariadic-macros \
-    -Wwrite-strings -g \
+    -Wwrite-strings \
     -O3 -ffunction-sections -fdata-sections \
     -I/opt/arm/stm32/inc \
     -I/opt/arm/stm32/CMSIS/Include \
