@@ -357,7 +357,7 @@ void LCDsetFont(const font_t *font) {
 // Advanced interface implementation
 
 #define BSIZE (LCD_PIXEL_WIDTH * LCD_PIXEL_HEIGHT)
-static const uint16_t board_pixels[BSIZE] = { 
+static const uint16_t board_pixels[BSIZE] = {
   #include "board.txt"
 };
 
@@ -434,17 +434,17 @@ typedef uint16_t (*PixelCalculator)(int x, int y, int px, int py);
 #define SHIFT_GREEN(val) (val << 5)
 #define SHIFT_BLUE(val) (val)
 static_assert(
-  ( GET_RED(LCD_COLOR_WHITE) << 11 
-  | GET_GREEN(LCD_COLOR_WHITE) << 5 
-  | GET_BLUE(LCD_COLOR_WHITE) 
+  ( GET_RED(LCD_COLOR_WHITE) << 11
+  | GET_GREEN(LCD_COLOR_WHITE) << 5
+  | GET_BLUE(LCD_COLOR_WHITE)
   ) == LCD_COLOR_WHITE, "bad color getters");
 static_assert(GET_RED(LCD_COLOR_WHITE) << 11 == LCD_COLOR_RED, "bad red getter");
 static_assert(GET_GREEN(LCD_COLOR_WHITE) << 5 == LCD_COLOR_GREEN, "bad green getter");
 static_assert(GET_BLUE(LCD_COLOR_WHITE) == LCD_COLOR_BLUE, "bad blue getter");
 
 static_assert(
-  ( SHIFT_RED(GET_RED(LCD_COLOR_WHITE)) 
-  | SHIFT_GREEN(GET_GREEN(LCD_COLOR_WHITE)) 
+  ( SHIFT_RED(GET_RED(LCD_COLOR_WHITE))
+  | SHIFT_GREEN(GET_GREEN(LCD_COLOR_WHITE))
   | SHIFT_BLUE(GET_BLUE(LCD_COLOR_WHITE))
   ) == LCD_COLOR_WHITE, "bad shift");
 static_assert(SHIFT_RED(GET_RED(LCD_COLOR_WHITE)) == LCD_COLOR_RED, "bad red shift");
@@ -462,7 +462,7 @@ uint16_t calculateAlpha(uint16_t bg_pixel, uint16_t img_pixel, uint16_t img_alph
 
   int32_t board_r = GET_RED(bg_pixel);
   int32_t board_g = GET_GREEN(bg_pixel);
-  int32_t board_b = GET_BLUE(bg_pixel);    
+  int32_t board_b = GET_BLUE(bg_pixel);
 
   // normally alpha is the same number for each channel
   // but the it was easier to split it
@@ -493,7 +493,7 @@ static uint16_t getBoardPixelWhenFretPressed(int board_x, int board_y, int col_o
     int fret_y = board_y - FRET_PRESS_Y;
 
     int fret_index = fret_y * NOTE_WIDTH + fret_x;
-    
+
     uint16_t fret_alpha = note_pixels[fret_index];
     uint16_t fret_pixel = color_pixel;
 
@@ -577,9 +577,9 @@ static void drawBoardLine(int col, int starty, int width, bool isFretPressed) {
   int startx = col_x[col];
   for (int i = 0; i < width; ++i) {
     uint16_t pixel = isFretPressed
-      ? getBoardPixelWhenFretPressed(startx + i, starty, i) 
+      ? getBoardPixelWhenFretPressed(startx + i, starty, i)
       : board_pixels[BOARD_INDEX(startx + i, starty)];
-    
+
     LCDwriteData16(pixel);
   }
 }
@@ -603,7 +603,7 @@ void LCDdrawNote(int col, int y) {
 // Doesn't draw pixels outside the screen.
 void LCDmoveNoteVertical(int col, int oldy, bool up) {
   int x = col_x[col];
-  
+
   NoteColor color = col_color[col];
   LCDsetColorPixel(color);
 
@@ -617,7 +617,7 @@ void LCDmoveNoteVertical(int col, int oldy, bool up) {
     // nothing to draw
     return;
   }
-  
+
   CS(0);
   LCDsetRectangle(
     x,                  upper_bound,
@@ -628,7 +628,7 @@ void LCDmoveNoteVertical(int col, int oldy, bool up) {
   if (down && oldy >= BOARD_FIRST_PIXEL) {
     drawBoardLine(col, oldy, NOTE_WIDTH, fret_pressed);
   }
-  
+
   drawNoteHelper(x, oldy - up + down, makeDrawer(fret_pressed));
 
   // if moving up, overwrite old last row

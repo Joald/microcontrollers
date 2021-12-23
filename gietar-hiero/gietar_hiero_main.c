@@ -7,11 +7,11 @@
 #include <fonts.h>
 #include <delay.h>
 
-#include "dma_uart.h"
-#include "keyboard.h"
+#include "lib/include/keyboard.h"
+#include "lib/include/dma_uart.h"
 
 // quotation marks include to use the modified driver
-#include "lcd.h"
+#include "lib/include/lcd.h"
 
 #include "game.h"
 
@@ -45,7 +45,7 @@ void setTim5Params(int prescaler, int max_value) {
 //     y = -y;
 //     LCDputchar('-');
 //   }
-  
+
 //   while (divisor > 0) {
 //     div_t divv = div(y, divisor);
 //     LCDputchar('0' + divv.quot);
@@ -100,16 +100,51 @@ extern void TIM5_IRQHandler() {
   }
 }
 
+void loop() {
+  KbKey key;
+  while ((key = getNext()) != KB_NOKEY) {
+    if (GET_ROW_NUM(key) == 1) {
+      int col = GET_COL_NUM(key);
+      handleFretPress(col);
+    }
+    if (key == KB_5) {
+      fall_on = !fall_on;
+      if (fall_on) {
+        DMA_DBG("Fall on!\n");
+      } else {
+        DMA_DBG("Fall off!\n");
+      }
+    }
+    if (key == KB_C && post_counter_max > 1) {
+      post_counter_max >>= 1;
+      DMA_DBG("Speeding up!\n");
+    }
+    if (key == KB_D && post_counter_max < 1ull << 62ull) {
+      post_counter_max <<= 1;
+      DMA_DBG("Slowing down!\n");
+    }
+  }
+  for (int i = 1; i <= 4; ++i) {
+    if (LCDisFretPressed(i) && !isKeyHeld(KB_ROW_KEY(1) | KB_COL_KEY(i))) {
+      handleFretRelease(i);
+    }
+  }
+  int moves = atomic_exchange(&to_move, 0);
+  for (int i = 0; i < moves; ++i) {
+    moveNotes();
+  }
+}
+
 int main() {
   initDmaUart();
   initKb();
-  initLcd();  
+  initLcd();
   DMA_DBG("LCD INIT DONE\n");
-  
+
   LCDdrawBoard();
 
   initGameTimer();
-  DMA_DBG("GAME TIMER INIT DONE\n");  
+  DMA_DBG("GAME TIMER INIT DONE\n");
 
   Delay(100000);
 
@@ -119,39 +154,7 @@ int main() {
   spawnNote(4);
 
   while (true) {
-    KbKey key;
-    while ((key = getNext()) != KB_NOKEY) {
-      if (GET_ROW_NUM(key) == 1) {
-        int col = GET_COL_NUM(key);
-        handleFretPress(col);
-      }
-      if (key == KB_5) {
-        fall_on = !fall_on;
-        if (fall_on) {
-          DMA_DBG("Fall on!\n");
-        } else {
-          DMA_DBG("Fall off!\n");
-        }
-      }
-      if (key == KB_C && post_counter_max > 1) {
-        post_counter_max >>= 1;
-        DMA_DBG("Speeding up!\n");
-      }
-      if (key == KB_D && post_counter_max < 1ull << 62ull) {
-        post_counter_max <<= 1;
-        DMA_DBG("Slowing down!\n");
-      }
-    }
-    for (int i = 1; i <= 4; ++i) {
-      if (LCDisFretPressed(i) && !isKeyHeld(KB_ROW_KEY(1) | KB_COL_KEY(i))) {
-        handleFretRelease(i);
-      }
-    }
-    int moves = atomic_exchange(&to_move, 0);
-    for (int i = 0; i < moves; ++i) {
-      moveNotes();
-    }
-    Delay(10000);
+    loop();
   }
 }
 

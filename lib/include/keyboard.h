@@ -26,29 +26,29 @@ typedef uint8_t kb_num_t;
 // lowest four bits is the row 
 // highest four bits is the column 
 typedef enum {
-  KB_0     = ROW(4) | COL(2),
-  KB_1     = ROW(1) | COL(1),
-  KB_2     = ROW(1) | COL(2),
-  KB_3     = ROW(1) | COL(3),
-  KB_4     = ROW(2) | COL(1),
-  KB_5     = ROW(2) | COL(2),
-  KB_6     = ROW(2) | COL(3),
-  KB_7     = ROW(3) | COL(1),
-  KB_8     = ROW(3) | COL(2),
-  KB_9     = ROW(3) | COL(3),
-  KB_A     = ROW(1) | COL(4),
-  KB_B     = ROW(2) | COL(4),
-  KB_C     = ROW(3) | COL(4),
-  KB_D     = ROW(4) | COL(4),
-  KB_STAR  = ROW(4) | COL(1),
+  KB_0 = ROW(4) | COL(2),
+  KB_1 = ROW(1) | COL(1),
+  KB_2 = ROW(1) | COL(2),
+  KB_3 = ROW(1) | COL(3),
+  KB_4 = ROW(2) | COL(1),
+  KB_5 = ROW(2) | COL(2),
+  KB_6 = ROW(2) | COL(3),
+  KB_7 = ROW(3) | COL(1),
+  KB_8 = ROW(3) | COL(2),
+  KB_9 = ROW(3) | COL(3),
+  KB_A = ROW(1) | COL(4),
+  KB_B = ROW(2) | COL(4),
+  KB_C = ROW(3) | COL(4),
+  KB_D = ROW(4) | COL(4),
+  KB_STAR = ROW(4) | COL(1),
   KB_POUND = ROW(4) | COL(3),
-  KB_NOKEY = (kb_num_t)0xff // all bits set
+  KB_NOKEY = (kb_num_t) 0xff // all bits set
 } KbKey;
 
 static_assert(sizeof(KbKey) == sizeof(kb_num_t), "kbkey takes more than 1 byte");
 
 #undef ROW // don't leak such short macro names
-#undef COL 
+#undef COL
 
 #define GET_ROW(key) (key >> 4)
 #define GET_COL(key) (key & (kb_num_t)0xf)

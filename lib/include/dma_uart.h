@@ -1,4 +1,4 @@
-#ifndef DMA_UART_H 
+#ifndef DMA_UART_H
 #define DMA_UART_H
 
 #include <stddef.h>

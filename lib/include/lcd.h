@@ -14,7 +14,7 @@ void LCDputchar(char c);
 void LCDputcharWrap(char c);
 
 // additional symbols from the basic driver, now exported
-void LCDsetFont(const font_t *font);
+void LCDsetFont(const font_t* font);
 
 /* Screen size in pixels, left top corner has coordinates (0, 0). */
 

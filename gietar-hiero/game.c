@@ -1,7 +1,7 @@
 #include <stdbool.h>
 
-#include "keyboard.h"
-#include "lcd.h"
+#include "lib/include/keyboard.h"
+#include "lib/include/lcd.h"
 
 // this module internally uses column numbers [0..3] for space efficiency
 // both LCD and client module use [1..4] and this is the macro to convert 
@@ -40,8 +40,8 @@ void noteHelper(NoteHandler handler) {
 }
 
 void moveNotes() {
-  void lambda(int col, int i) {  
-    if (state.note_buf_state[COL] & (1 << i)){
+  void lambda(int col, int i) {
+    if (state.note_buf_state[COL] & (1 << i)) {
       int y = state.notes[COL][i].pos_y;
       if (y > LCD_PIXEL_HEIGHT + 1) {
         LCDremoveNote(col, y);
@@ -68,11 +68,11 @@ void handleFretPress(int col) {
   LCDpressFret(col);
   for (int i = 0; i < MAX_NOTES_IN_COL; ++i) {
     if (state.note_buf_state[COL] & (1 << i) &&
-      IABS(state.notes[COL][i].pos_y - FRET_PRESS_Y) < 5) {
-        deleteNote(col, i);
-        // TODO: add points
+        IABS(state.notes[COL][i].pos_y - FRET_PRESS_Y) < 5) {
+      deleteNote(col, i);
+      // TODO: add points
     }
-  }  
+  }
 }
 
 void handleFretRelease(int col) {
