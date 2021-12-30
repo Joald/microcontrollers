@@ -601,17 +601,23 @@ void LCDdrawNote(int col, int y) {
 // It draws another note 1 pixel higher/lower according to passed flag
 // Also it fills the space unoccupied by the new note with background pixels
 // Doesn't draw pixels outside the screen.
-void LCDmoveNoteVertical(int col, int oldy, bool up) {
+void LCDmoveNoteVertical(int col, int oldy, int deltay) {
   int x = col_x[col];
 
   NoteColor color = col_color[col];
   LCDsetColorPixel(color);
 
+  bool up = deltay < 0;
   bool down = !up;
+
+  if (up) {
+    deltay = -deltay;
+  }
+
   bool fret_pressed = LCDisFretPressed(col);
 
-  int upper_bound = IMAX(oldy - up, BOARD_FIRST_PIXEL);
-  int lower_bound = IMIN(oldy + down + NOTE_HEIGHT - 1, LCD_PIXEL_HEIGHT - 1);
+  int upper_bound = IMAX(oldy - up   * deltay,                   BOARD_FIRST_PIXEL);
+  int lower_bound = IMIN(oldy + down * deltay + NOTE_HEIGHT - 1, LCD_PIXEL_HEIGHT - 1);
 
   if (upper_bound >= LCD_PIXEL_HEIGHT || lower_bound < BOARD_FIRST_PIXEL) {
     // nothing to draw
@@ -625,17 +631,21 @@ void LCDmoveNoteVertical(int col, int oldy, bool up) {
   );
 
   // if moving down, overwrite old first row  
-  if (down && oldy >= BOARD_FIRST_PIXEL) {
-    drawBoardLine(col, oldy, NOTE_WIDTH, fret_pressed);
+  if (down && /* TODO: move this check and the one in up inside the loop */ oldy >= BOARD_FIRST_PIXEL) {
+    for (int i = 0; i < deltay; ++i) {
+      drawBoardLine(col, oldy + i, NOTE_WIDTH, fret_pressed);
+    }
   }
 
-  drawNoteHelper(x, oldy - up + down, makeDrawer(fret_pressed));
+  drawNoteHelper(x, oldy + deltay * (-up + down), makeDrawer(fret_pressed));
 
   // if moving up, overwrite old last row
   if (up) {
     int lower_line_y = oldy + NOTE_HEIGHT - 1;
     if (lower_line_y < LCD_PIXEL_HEIGHT) {
-      drawBoardLine(col, lower_line_y, NOTE_WIDTH, fret_pressed);
+      for (int i = 0; i < deltay; ++i) {
+        drawBoardLine(col, lower_line_y + i, NOTE_WIDTH, fret_pressed);
+      }
     }
   }
 

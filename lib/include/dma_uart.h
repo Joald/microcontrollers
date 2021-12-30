@@ -8,6 +8,7 @@ void initDmaUart();
 
 // send/receive
 void dmaSend(const char* buf, size_t len);
+void dmaSendWithCopy(const char* buf, size_t len);
 void dmaRecv(char* buf); // size must be 1
 
 // helper send macro that works only for compile-time constants

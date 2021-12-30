@@ -36,7 +36,7 @@ typedef enum {
 void LCDdrawBoard();
 void LCDdrawNote(int col, int y);
 void LCDdrawNoteXY(int x, int y, NoteColor color);
-void LCDmoveNoteVertical(int col, int oldy, bool up);
+void LCDmoveNoteVertical(int col, int oldy, int deltay);
 void LCDremoveNote(int col, int y);
 void LCDpressFret(int col);
 void LCDreleaseFret(int col);

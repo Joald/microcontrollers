@@ -103,11 +103,23 @@ extern void TIM5_IRQHandler() {
 void loop() {
   KbKey key;
   while ((key = getNext()) != KB_NOKEY) {
+    // 123A press frets
+    // 456B debug spawn notes
+    // * toggles note fall
+    // CD control note fall speed
+    // 80 regulate the note hit window
+
     if (GET_ROW_NUM(key) == 1) {
       int col = GET_COL_NUM(key);
       handleFretPress(col);
     }
-    if (key == KB_5) {
+
+    if (GET_ROW_NUM(key) == 2) {
+      int col = GET_COL_NUM(key);
+      spawnNote(col);
+    }
+
+    if (key == KB_STAR) {
       fall_on = !fall_on;
       if (fall_on) {
         DMA_DBG("Fall on!\n");
@@ -123,6 +135,12 @@ void loop() {
       post_counter_max <<= 1;
       DMA_DBG("Slowing down!\n");
     }
+    if (key == KB_8) {
+      increaseHitWindow();
+    }
+    if (key == KB_0) {
+      decreaseHitWindow();
+    }
   }
   for (int i = 1; i <= 4; ++i) {
     if (LCDisFretPressed(i) && !isKeyHeld(KB_ROW_KEY(1) | KB_COL_KEY(i))) {
@@ -130,8 +148,8 @@ void loop() {
     }
   }
   int moves = atomic_exchange(&to_move, 0);
-  for (int i = 0; i < moves; ++i) {
-    moveNotes();
+  if (moves > 0) {
+    moveNotes(moves);
   }
 }
 
@@ -139,7 +157,7 @@ int main() {
   initDmaUart();
   initKb();
   initLcd();
-  DMA_DBG("LCD INIT DONE\n");
+  DMA_DBG("\n\nStarting Gietar Hiero!\n\nLCD INIT DONE\n");
 
   LCDdrawBoard();
 

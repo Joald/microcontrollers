@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <string.h>
 #include <stm32.h>
 #include <gpio.h>
 
@@ -78,14 +79,17 @@ typedef struct {
 } SendQueueElem;
 
 #define SEND_QUEUE_SIZE 64
+#define MAX_COPY_BUFFER_SIZE 64
 
 struct SendQueue {
   SendQueueElem elems[SEND_QUEUE_SIZE];
+  char buf_copies[SEND_QUEUE_SIZE][MAX_COPY_BUFFER_SIZE];
   int size;
   int start;
 } queue;
 
 #define QUEUE_GET(n) (queue.elems[(queue.start + n) % SEND_QUEUE_SIZE])
+#define QUEUE_COPY_GET(n) (queue.buf_copies[(queue.start + n) % SEND_QUEUE_SIZE])
 
 #define QUEUE_POP() \
 ({ \
@@ -119,6 +123,19 @@ void dmaSend(const char* buf, size_t len) {
     forceSend(buf, len);
   } else {
     queueSend(buf, len);
+  }
+}
+
+void dmaSendWithCopy(const char* buf, size_t len) {
+  if ((DMA1_Stream6->CR & DMA_SxCR_EN) == 0
+      && (DMA1->HISR & DMA_HISR_TCIF6) == 0) {
+    char* copy_buf = QUEUE_COPY_GET(queue.size + 1);
+    memcpy(copy_buf, buf, len);
+    forceSend(copy_buf, len);
+  } else {
+    char* copy_buf = QUEUE_COPY_GET(queue.size);
+    memcpy(copy_buf, buf, len);
+    queueSend(copy_buf, len);
   }
 }
 
