@@ -84,7 +84,7 @@ void deleteNote(int col, int i) {
   val < 0 ? -val : val; \
 })
 
-static int hit_window = 9; // determined by trial and error
+static int hit_window = 29; // determined by trial and error
 
 void handleFretPress(int col) {
   LCDpressFret(col);
