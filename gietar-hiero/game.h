@@ -2,6 +2,7 @@
 #define GAME_H
 
 void spawnNote(int col);
+void spawnNoteY(int col, int y);
 void deleteNote(int col, int i);
 void moveNotes(int how_many);
 void handleFretPress(int col);

@@ -64,9 +64,7 @@ static_assert(sizeof(KbKey) == sizeof(kb_num_t), "kbkey takes more than 1 byte")
 #define GET_ROW_NUM(key) GET_NUM(ROW, key)
 #define GET_COL_NUM(key) GET_NUM(COL, key)
 
-static_assert(GET_ROW_NUM(KB_ROW_KEY(1)) == 1, "bad GET_ROW_NUM calc");
-
-
+static_assert(GET_ROW_NUM(KB_ROW_KEY(2)) == 2, "bad GET_ROW_NUM calc");
 
 // Keyboard interaction methods
 

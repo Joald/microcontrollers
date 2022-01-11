@@ -3,23 +3,32 @@
 
 #include <stddef.h>
 
+#ifndef NDEBUG
+// debug, definition will be in .c file
+#define DECL_BEGIN
+#define DECL_END ;
+#else 
+// no debug, make it inline noop
+#define DECL_BEGIN \
+  _Pragma("GCC diagnostic push") \
+  _Pragma("GCC diagnostic ignored \"-Wunused-parameter\"") \
+  inline
+#define DECL_END \
+  {} \
+  _Pragma("GCC diagnostic pop")
+#endif
+
+
 // Initialization
-void initDmaUart();
+DECL_BEGIN void initDmaUart() DECL_END
 
 // send/receive
-void dmaSend(const char* buf, size_t len);
-void dmaSendWithCopy(const char* buf, size_t len);
-void dmaRecv(char* buf); // size must be 1
+DECL_BEGIN void dmaSend(const char* buf, size_t len) DECL_END
+DECL_BEGIN void dmaSendWithCopy(const char* buf, size_t len) DECL_END
+DECL_BEGIN void dmaRecv(char* buf) DECL_END // size must be 1
 
 // helper send macro that works only for compile-time constants
-#define DMA_SEND(MSG) dmaSend(MSG, sizeof(MSG) - 1)
-
-// if DEBUG, DMA_DBG prints, otherwise it's a noop (but still requires semicolon at the end)
-#ifdef DEBUG
-#define DMA_DBG(MSG) DMA_SEND(MSG)
-#else
-#define DMA_DBG(_) do {} while (false)
-#endif
+#define DMA_DBG(MSG) dmaSend(MSG, sizeof(MSG) - 1)
 
 // Handlers
 typedef void(*DmaUartHandler)(const char*);
@@ -31,7 +40,7 @@ typedef enum {
   H_DMA_RECEIVE_FINISH,
 } HandlerPurpose;
 
-void registerDmaUartHandler(HandlerPurpose type, DmaUartHandler handler);
+DECL_BEGIN void registerDmaUartHandler(HandlerPurpose type, DmaUartHandler handler) DECL_END
 
 
 #endif // DMA_UART_H

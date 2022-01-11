@@ -13,6 +13,7 @@ int key_row = 0;
 
 // All macros take row/col numbers from [1..4]
 
+// returns pin number as expected by 
 #define KB_COL_PIN_NUM(col_num) (col_num - 1)
 #define KB_ROW_PIN_NUM(row_num) (row_num + 5)
 
@@ -50,14 +51,11 @@ static uint32_t kbRowPR(int row_num) {
 
 static void setAllColsTo(bool to) {
   // col bits are 0-3
+  // setting to 1 goes in lower 16 bits of BSRR, setting to 0 in upper 16
   KB_GPIO->BSRR = 0b1111 << (to ? 0 : 16);
 }
 
-// handlers are extern to force a linker error 
-// when compiling other *.c that uses the same ones
-
-
-extern void EXTI9_5_IRQHandler() {
+void EXTI9_5_IRQHandler() {
   EXTI->IMR &= ~KB_ROW_PR_MASK;
 
   EXTI->PR |= 0;
@@ -72,7 +70,7 @@ extern void EXTI9_5_IRQHandler() {
 
 bool scanKeys();
 
-extern void TIM3_IRQHandler() {
+void TIM3_IRQHandler() {
   uint32_t it_status = TIM3->SR & TIM3->DIER;
   if (it_status & TIM_SR_UIF) {
     TIM3->SR = ~TIM_SR_UIF;
@@ -99,7 +97,7 @@ typedef unsigned char buf_ind_t;
 struct PressedKeyBuffer {
   KbKey keys[KEY_BUF_SIZE];
   uint32_t data;
-  // data represents:
+  // data represents (assuming lowest bits go last):
   // buf_ind_t padding[2];
   // buf_ind_t start;
   // buf_ind_t size;
@@ -107,7 +105,7 @@ struct PressedKeyBuffer {
   // and undefined behavior harder
 } key_buf;
 
-#define GET_START(where) ((where) >> (8))
+#define GET_START(where) ((where) >> 8)
 #define GET_SIZE(where) ((where) & 0xff)
 
 
@@ -117,14 +115,14 @@ struct PressedKeyBuffer {
 
 #define SET_START(where, what) \
   do { \
-    uint32_t tmp = what; \
-    where &= ~(0xff00); \
+    uint32_t tmp = (what); \
+    where &= ~0xff00; \
     where |= tmp << 8; \
   } while (false)
 
 #define SET_SIZE(where, what) \
   do { \
-    uint32_t tmp = what; \
+    uint32_t tmp = (what); \
     where &= ~0xff; \
     where |= tmp; \
   } while (false)
@@ -133,12 +131,12 @@ struct PressedKeyBuffer {
 #define SET_BUF_SIZE(what) SET_SIZE(key_buf.data, what)
 
 
-// call from main "thread" only; can "block"
+// call from main "thread" only
 KbKey getNext() {
   uint32_t* memory = &key_buf.data;
   int retries = 0;
 
-  // inspired by http://www.atakansarioglu.com/simple-semaphore-mutex-arm-cortex-m-implementation/
+  // synchronization adapted from http://www.atakansarioglu.com/simple-semaphore-mutex-arm-cortex-m-implementation/
 
 	while (retries < 32) { // 32 times because it's a nice round number
     if (GET_BUF_SIZE == 0) {
@@ -152,14 +150,11 @@ KbKey getNext() {
     KbKey rv = key_buf.keys[GET_START(memory_val)]; // indexing at key_buf.start
 
 		// modify value, equivalent to:
-    // key_buf.start = (key_buf.start + 1) % KEY_BUF_SIZE;
-    // key_buf.size--; 
+    //   key_buf.start = (key_buf.start + 1) % KEY_BUF_SIZE;
+    //   key_buf.size--; 
     SET_START(memory_val, (GET_START(memory_val) + 1) % KEY_BUF_SIZE);
     SET_SIZE(memory_val, GET_SIZE(memory_val) - 1);
     
-    static_assert((1 << 8) == 256, "math doesn't work");
-    static_assert((KEY_BUF_SIZE << 8) - 1 == 0x7fff, "mask calculation wrong");
-
     // data memory barrier instruction
     __DMB();
 
@@ -178,19 +173,18 @@ KbKey getNext() {
   return KB_NOKEY;
 }
 
-// only call from interrupt handler, so we don't need sync
+// only call from interrupt handler
 static void storeKeyPress(KbKey key) {
   key_buf.keys[(GET_BUF_START + GET_BUF_SIZE) % KEY_BUF_SIZE] = key;
-  // don't need synchronization as we can't get interrupted by getNext
+  // don't need synchronization as we can never get interrupted by getNext
   if (GET_BUF_SIZE == KEY_BUF_SIZE) {
     SET_BUF_START((GET_BUF_START + 1) % KEY_BUF_SIZE);
   } else {
-    // key_buf.size++;
     SET_BUF_SIZE(GET_BUF_SIZE + 1);
   }
 }
 
-// 16 keys, 16 bits - 
+// 16 keys, 16 bits - lowest bit is lowest key code
 uint16_t pressed_key_mask = 0;
 
 #define MAKE_KEY_MASK(key) \
@@ -205,13 +199,24 @@ bool scanKeys() {
   uint16_t new_key_mask = 0;
   for (int i = 1; i <= N_COLS; ++i) {
     KB_SET_PIN(COL, i, false);
+
+    // wait for it to propagate
 	  for (int x = 0; x < 10; x++) __NOP();
+
+    // read state    
     unsigned int state = KB_GPIO->IDR; // TODO should it be ODR?
+    
     KB_SET_PIN(COL, i, true);
+    
+    // reverse bits so that set bit means row on
     state = ~state;
     state &= KB_ROW_PIN_MASK;
     if (state) {
       int col = i;
+
+      // now decide which key is pressed.
+      // choosing highest bit set means that
+      // keys that are below override the ones that are above
 
       // - clz = *c*ount *l*eading *z*ero bits
       // - subtract it from total number of bits 
@@ -231,6 +236,7 @@ bool scanKeys() {
       KbKey key = KB_ROW_KEY(row) | KB_COL_KEY(col);
 
       uint16_t key_mask = MAKE_KEY_MASK(key);
+      // only register press if it wasn't in the mask already
       if (!(pressed_key_mask & key_mask)) {
         storeKeyPress(key);
       }
@@ -242,9 +248,11 @@ bool scanKeys() {
 }
 
 void initKb() {
-  static_assert(KB_ROW_PIN_MASK == KB_ROW_PR_MASK, "Pin and PR masks different");
+  static_assert(KB_ROW_PIN_MASK == KB_ROW_PR_MASK, 
+    "Pin and PR masks different, make sure configuration is done properly before compiling");
   static_assert(KB_ROW_PIN_MASK == 64+128+256+512, "Pin mask is not exactly bits 6-9");
-  
+
+  // make configuration possible
   RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
 
   // enable kb timing
@@ -281,7 +289,6 @@ void initKb() {
       GPIO_PuPd_NOPULL
     );
   }
-
 
   // configure row pins
   uint32_t prs_to_zero = 0;

@@ -14,7 +14,6 @@
 #define NOTE_INIT_Y (-30)
 typedef struct {
   int pos_y;
-
 } Note;
 
 
@@ -26,8 +25,12 @@ struct GameState {
 #define GET_LOWEST_FREE(col) (__builtin_clz(~state.note_buf_state[col]))
 
 void spawnNote(int col) {
+  spawnNoteY(col, NOTE_INIT_Y);
+}
+
+void spawnNoteY(int col, int y) {
   unsigned int lowest_free = GET_LOWEST_FREE(COL);
-  state.notes[COL][lowest_free].pos_y = NOTE_INIT_Y;
+  state.notes[COL][lowest_free].pos_y = y;
   state.note_buf_state[COL] |= 1 << lowest_free;
   
   char msg[] = "Note __ spawned in column _\n";

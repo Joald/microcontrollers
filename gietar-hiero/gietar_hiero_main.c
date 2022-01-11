@@ -8,12 +8,12 @@
 #include <delay.h>
 
 #include "lib/include/keyboard.h"
-#include "lib/include/dma_uart.h"
-
-// quotation marks include to use the modified driver
 #include "lib/include/lcd.h"
 
 #include "game.h"
+
+// for debugging only
+#include "lib/include/dma_uart.h"
 
 void initLcd() {
   LCDconfigure();
@@ -21,39 +21,6 @@ void initLcd() {
   LCDclear();
   LCDgoto(0, 0);
 }
-
-void setTim5Params(int prescaler, int max_value) {
-  TIM5->CR1 |= TIM_CR1_UDIS;
-  TIM5->PSC = prescaler;
-  TIM5->ARR = max_value;
-  TIM5->CR1 &= ~TIM_CR1_UDIS;
-}
-
-#define LCD_PRINT(str_literal) \
-  do { \
-    const char* buf = str_literal; \
-    for (unsigned i = 0; i < sizeof(str_literal) - 1; ++i) { \
-      LCDputchar(buf[i]); \
-    } \
-  } while (false)
-
-// void updateRedNotePos(int y) {
-//   LCDgoto(0, sizeof("Red note y = ") - 1);
-//   int divisor = 100;
-//   if (y < 0) {
-//     divisor /= 10;
-//     y = -y;
-//     LCDputchar('-');
-//   }
-
-//   while (divisor > 0) {
-//     div_t divv = div(y, divisor);
-//     LCDputchar('0' + divv.quot);
-//     y = divv.rem;
-//     divisor /= 10;
-//   }
-// }
-
 
 void initGameTimer() {
   // enable timer2 timing
@@ -76,7 +43,7 @@ void initGameTimer() {
 }
 
 uint64_t post_counter = 0;
-uint64_t post_counter_max = 1;// << 20;
+uint64_t post_counter_max = 1;
 bool fall_on = false;
 
 atomic_int to_move = 0;
@@ -166,10 +133,10 @@ int main() {
 
   Delay(100000);
 
-  spawnNote(1);
-  spawnNote(2);
-  spawnNote(3);
-  spawnNote(4);
+  spawnNoteY(1, -120);
+  spawnNoteY(2, -90);
+  spawnNoteY(3, -60);
+  spawnNoteY(4, -30);
 
   while (true) {
     loop();
@@ -183,12 +150,12 @@ int main() {
  X improve note edge visuals
  X add timer for moving and key for spawning notes
  X   (use keys to adjust speed)
- *   (find best speed?)
- ? combine the two to play notes
- * then communicate with laptop to get some actual "music"
- * and add basic scoring
- * STRETCH:
+ X   (find best speed?)
+ X combine the two to play notes
+   STRETCH:
+ * communicate with laptop to get some actual "music"
+ * add basic scoring
  * maybe add loading screen, menu etc.
  * use received data from computer to "play" sounds to a diode
- * get a speaker to 
+ * get a speaker instead of diode
  */

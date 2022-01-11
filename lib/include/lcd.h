@@ -41,4 +41,5 @@ void LCDremoveNote(int col, int y);
 void LCDpressFret(int col);
 void LCDreleaseFret(int col);
 bool LCDisFretPressed(int col);
+
 #endif // GUITAR_HERO_LCD_H

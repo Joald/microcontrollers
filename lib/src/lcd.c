@@ -658,10 +658,12 @@ void LCDremoveNote(int col, int y) {
   int x = col_x[col];
   int upper_bound = IMAX(y, BOARD_FIRST_PIXEL);
   int lower_bound = IMIN(y + NOTE_HEIGHT - 1, LCD_PIXEL_HEIGHT - 1);
+
   if (upper_bound >= LCD_PIXEL_HEIGHT || lower_bound < BOARD_FIRST_PIXEL) {
     // nothing to draw
     return;
   }
+  
   CS(0);
   LCDsetRectangle(x, upper_bound, x + NOTE_WIDTH - 1, lower_bound);
   drawNoteHelper(x, y, noteRemover);
