@@ -22,7 +22,10 @@ struct GameState {
   unsigned int note_buf_state[N_COLS];
 } state;
 
-#define GET_LOWEST_FREE(col) (__builtin_clz(~state.note_buf_state[col]))
+#define GET_LOWEST_FREE(_col) ({ \
+    unsigned int st = state.note_buf_state[_col]; \
+    st == 0 ? 0 : 32 - __builtin_clz(st); \
+  })
 
 void spawnNote(int col) {
   spawnNoteY(col, NOTE_INIT_Y);
@@ -30,6 +33,17 @@ void spawnNote(int col) {
 
 void spawnNoteY(int col, int y) {
   unsigned int lowest_free = GET_LOWEST_FREE(COL);
+  if (lowest_free == 32) {
+    for (int i = 0; i < MAX_NOTES_IN_COL; ++i) {
+      if (!(state.note_buf_state[COL] & (1 << i))) {
+        lowest_free = i;
+        break;
+      }
+    }
+    if (lowest_free == 32) {
+      return;
+    }
+  }
   state.notes[COL][lowest_free].pos_y = y;
   state.note_buf_state[COL] |= 1 << lowest_free;
   

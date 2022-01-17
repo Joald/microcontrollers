@@ -131,7 +131,7 @@ int main() {
   initGameTimer();
   DMA_DBG("GAME TIMER INIT DONE\n");
 
-  Delay(100000);
+  // Delay(10000);
 
   spawnNoteY(1, -120);
   spawnNoteY(2, -90);
