@@ -71,6 +71,7 @@ void loop() {
     // * toggles note fall
     // CD control note fall speed
     // 80 regulate the note hit window
+    // 7 resets song
 
     if (GET_ROW_NUM(key) == 1) {
       int col = GET_COL_NUM(key);
@@ -104,6 +105,10 @@ void loop() {
     if (key == KB_0) {
       decreaseHitWindow();
     }
+    if (key == KB_7) {
+      DMA_DBG("Resetting...\n");
+      resetGame();
+    }
   }
   for (int i = 1; i <= 4; ++i) {
     if (LCDisFretPressed(i) && !isKeyHeld(KB_ROW_KEY(1) | KB_COL_KEY(i))) {
@@ -123,6 +128,8 @@ int main() {
   DMA_DBG("\n\nStarting Gietar Hiero!\n");
 
   LCDdrawBoard();
+
+  updateScore();
 
   initGameTimer();
 

@@ -69,6 +69,10 @@ in pixels */
 
 static int Line, Position, TextHeight, TextWidth, XOffset, YOffset;
 
+int LCDgetTextWidth() {
+  return TextWidth;
+}
+
 /** Internal functions **/
 
 /* The following four functions are inlined and "if" statement is
@@ -360,7 +364,7 @@ static const uint16_t board_pixels[BSIZE] = {
 #define LCD_BETTER_YELLOW  0xd680
 
 // Can make space above board for text display
-#define BOARD_FIRST_PIXEL 0 // CurrentFont->height
+#define BOARD_FIRST_PIXEL CurrentFont->height
 
 void LCDsetFullRectangle() {
   LCDsetRectangle(0, BOARD_FIRST_PIXEL, LCD_PIXEL_WIDTH - 1, LCD_PIXEL_HEIGHT - 1);

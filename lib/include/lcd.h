@@ -32,7 +32,7 @@ typedef enum {
   N_RED
 } NoteColor;
 
-
+int LCDgetTextWidth();
 void LCDsetFullRectangle();
 void LCDdrawBoard();
 void LCDdrawNote(int col, int y);

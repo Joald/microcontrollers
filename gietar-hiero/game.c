@@ -1,9 +1,30 @@
 #include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
 
 #include "lib/include/keyboard.h"
 #include "lib/include/lcd.h"
 #include "lib/include/dma_uart.h"
 #include "game.h"
+
+static void helperPrintInt64(char* start, int64_t to_print, int space) {
+  bool minus = false;
+  if (to_print < 0) {
+    minus = true;
+    to_print = -to_print;
+  }
+  char* next_space = start + space - 1;
+  if (!to_print) {
+    *next_space = '0';
+  }
+  for (; to_print && next_space >= start; next_space--) {
+    *next_space = '0' + to_print % 10;
+    to_print /= 10;
+  }
+  if (next_space >= start && minus) {
+    *next_space = '-';
+  }
+} 
 
 // this module internally uses column numbers [0..3] for space efficiency
 // both LCD and client module use [1..4] and this is the macro to convert 
@@ -18,10 +39,14 @@ typedef struct {
   int pos_y;
 } Note;
 
+typedef uint64_t tick_t;
 
 struct GameState {
   Note notes[N_COLS][MAX_NOTES_IN_COL];
   unsigned int note_buf_state[N_COLS];
+  uint64_t score;
+  int spawned;
+  tick_t ticks;
 } state;
 
 #define GET_LOWEST_FREE(_col) ({ \
@@ -29,8 +54,33 @@ struct GameState {
     st == 0 ? 0 : 32 - __builtin_clz(st); \
   })
 
+void updateScore() {
+  const int offset = sizeof("Score: ") - 1;
+  int width = LCDgetTextWidth() - offset; // space for digits
+  int size = width + offset;
+  
+  const char score[] = "Score: ";
+  char buf[size];
+  memcpy(buf, score, offset);
+  char* digits = buf + offset;
 
-typedef uint64_t tick_t;
+  memset(digits, ' ', width);
+  helperPrintInt64(digits, state.score, width);
+
+  LCDgoto(0, 0);
+  for (int i = 0; i < size; ++i) {
+    LCDputchar(buf[i]);
+  }
+}
+
+void changeScoreBy(int delta) {
+  if (delta < 0 && state.score < (uint64_t)-delta) {
+    state.score = 0;
+  } else {
+    state.score += delta;
+  }
+  updateScore();
+}
 
 // information on how notes should be spawned and played
 typedef struct {
@@ -39,7 +89,7 @@ typedef struct {
   // TODO: melodic 
 } NoteInfo;
 
-int to_spawn = 6;
+const int to_spawn = 6;
 
 NoteInfo song[256] = {
   {.column = 1, .start_time =  30},
@@ -50,29 +100,19 @@ NoteInfo song[256] = {
   {.column = 4, .start_time = 130},
 };
 
-int spawned = 0;
-
-void helperPrintUint64(char* start, uint64_t to_print, int space) {
-  for (char* next_space = start + space - 1; next_space >= start; next_space--) {
-    *next_space = '0' + to_print % 10;
-    to_print /= 10;
-  }
-} 
-
-
 // spawns all notes which haven't been spawned since last tick
 void spawnNotesForTick(tick_t tick) {
-  while (song[spawned].start_time <= tick && spawned < to_spawn) {
-    uint64_t noteY = song[spawned].start_time - tick - 100;
+  while (song[state.spawned].start_time <= tick && state.spawned < to_spawn) {
+    int64_t noteY = song[state.spawned].start_time - tick - 100;
     char msg[128] = "Spawning note with start time ............ during tick ............ at y = ............\n";
-    helperPrintUint64(msg + sizeof("Spawning note with start time ") - 1, song[spawned].start_time, 12);
-    helperPrintUint64(msg + sizeof("Spawning note with start time ............ during tick ") - 1, tick, 12);
-    helperPrintUint64(msg + sizeof("Spawning note with start time ............ during tick ............ at y = ") - 1, noteY, 12);
+    helperPrintInt64(msg + sizeof("Spawning note with start time ") - 1, song[state.spawned].start_time, 12);
+    helperPrintInt64(msg + sizeof("Spawning note with start time ............ during tick ") - 1, tick, 12);
+    helperPrintInt64(msg + sizeof("Spawning note with start time ............ during tick ............ at y = ") - 1, noteY, 12);
     
     dmaSendWithCopy(msg, 128);
     
-    spawnNoteY(song[spawned].column, noteY);
-    spawned++;
+    spawnNoteY(song[state.spawned].column, noteY);
+    state.spawned++;
     
   }
 }
@@ -122,7 +162,7 @@ void moveNotes(int how_many) {
       int y = state.notes[COL][i].pos_y;
       if (y > LCD_PIXEL_HEIGHT + 1) {
         deleteNote(col, i);
-        // TODO: remove points
+        changeScoreBy(-100);
       } else {
         LCDmoveNoteVertical(col, y, how_many);
         state.notes[COL][i].pos_y += how_many;
@@ -154,17 +194,19 @@ static int hit_window = 23; // determined by trial and error
 void handleFretPress(int col) {
   LCDpressFret(col);
   for (int i = 0; i < MAX_NOTES_IN_COL; ++i) {
-    if (state.note_buf_state[COL] & (1 << i) &&
-        IABS(state.notes[COL][i].pos_y - FRET_PRESS_Y) < hit_window) {
-      DMA_DBG("Detected fret/note collision!\n");
-      deleteNote(col, i);
-      // TODO: add points
+    if (state.note_buf_state[COL] & (1 << i)) {
+      int difference = IABS(state.notes[COL][i].pos_y - FRET_PRESS_Y);
+      if (difference < hit_window) {
+        DMA_DBG("Detected fret/note collision!\n");
+        deleteNote(col, i);
+        changeScoreBy(1000 - difference);
+      }
     }
   }
 }
 
 void handleFretRelease(int col) {
-  // todo: provide overlapping notes
+  // todo hard: provide overlapping notes
   LCDreleaseFret(col);
 }
 
@@ -186,11 +228,16 @@ void decreaseHitWindow() {
   dmaSendWithCopy(msg, sizeof(msg));
 }
 
-
-tick_t ticks = 0;
-
-void handleTicks(int how_many_ticks) {
-  ticks += how_many_ticks;
-  spawnNotesForTick(ticks);
+void handleTicks(uint32_t how_many_ticks) {
+  state.ticks += how_many_ticks;
+  spawnNotesForTick(state.ticks);
   moveNotes(how_many_ticks);
+}
+
+void resetGame() {
+  // let the existing notes just fall
+  state.ticks = 0;
+  state.spawned = 0;
+  state.score = 0;
+  updateScore();
 }
