@@ -120,19 +120,11 @@ int main() {
   initDmaUart();
   initKb();
   initLcd();
-  DMA_DBG("\n\nStarting Gietar Hiero!\n\nLCD INIT DONE\n");
+  DMA_DBG("\n\nStarting Gietar Hiero!\n");
 
   LCDdrawBoard();
 
   initGameTimer();
-  DMA_DBG("GAME TIMER INIT DONE\n");
-
-  // Delay(10000);
-
-  // spawnNoteY(1, -120);
-  // spawnNoteY(2, -90);
-  // spawnNoteY(3, -60);
-  // spawnNoteY(4, -30);
 
   while (true) {
     loop();
@@ -149,9 +141,10 @@ int main() {
  X   (find best speed?)
  X combine the two to play notes
    STRETCH:
- * communicate with laptop to get some actual "music"
+ X add basic song storage
+ * play basic sounds
+ * add note pitch to the song storage and play the sounds when relevant
  * add basic scoring
  * maybe add loading screen, menu etc.
- * use received data from computer to "play" sounds to a diode
- * get a speaker instead of diode
+ * communicate with laptop to get some actual "music"
  */

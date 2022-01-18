@@ -292,7 +292,7 @@ void LCDclear() {
   int i, j;
 
   CS(0);
-  LCDsetFullRectangle();
+  LCDsetRectangle(0, 0, LCD_PIXEL_WIDTH - 1, LCD_PIXEL_HEIGHT - 1);
   for (i = 0; i < LCD_PIXEL_WIDTH; ++i) {
     for (j = 0; j < LCD_PIXEL_HEIGHT; ++j) {
       LCDwriteData16(BackColor);
@@ -363,13 +363,13 @@ static const uint16_t board_pixels[BSIZE] = {
 #define BOARD_FIRST_PIXEL 0 // CurrentFont->height
 
 void LCDsetFullRectangle() {
-  LCDsetRectangle(0, 0, LCD_PIXEL_WIDTH - 1, LCD_PIXEL_HEIGHT - 1);
+  LCDsetRectangle(0, BOARD_FIRST_PIXEL, LCD_PIXEL_WIDTH - 1, LCD_PIXEL_HEIGHT - 1);
 }
 
 void LCDdrawBoard() {
   CS(0);
   LCDsetFullRectangle();
-  for (int i = 0; i < BSIZE; ++i) {
+  for (int i = LCD_PIXEL_WIDTH * BOARD_FIRST_PIXEL; i < BSIZE; ++i) {
     LCDwriteData16(board_pixels[i]);
   }
   CS(1);
@@ -404,9 +404,6 @@ static const uint16_t color_map[4] = {
     int l = m1, r = m2; \
     l < r ? r : l; \
   })
-
-
-typedef uint16_t (*PixelCalculator)(int x, int y, int px, int py);
 
 #define GET_RED(pixel) ((pixel & LCD_COLOR_RED) >> 11)
 #define GET_GREEN(pixel) ((pixel & LCD_COLOR_GREEN) >> 5)
@@ -516,6 +513,10 @@ void LCDsetColorPixel(NoteColor color) {
   color_pixel = color_map[color];
 }
 
+// x,y - screen coords; px,py - note coords
+typedef uint16_t (*PixelCalculator)(int x, int y, int px, int py);
+
+
 PixelCalculator makeDrawer(bool isFretPressed) {
   uint16_t lambda(int x, int y, int px, int py) {
     int index = py * NOTE_WIDTH + px;
@@ -563,7 +564,7 @@ uint16_t noteRemoverFretPressed(int x, int y, int px, int py) {
 }
 
 // Assumes CS(0) and rectangle set
-// Draws only the note with upper-left pixel at (x, y)
+// Draws only the note with logical upper-left pixel at (x, y)
 // Handles top/bottom edges of the screen correctly, but not left/right
 static void drawNoteHelper(int x, int y, PixelCalculator calc) {
   for (
@@ -626,8 +627,11 @@ void LCDmoveNoteVertical(int col, int oldy, int deltay) {
 
   bool fret_pressed = LCDisFretPressed(col);
 
+  // rectangle bounds
   int upper_bound = IMAX(oldy - up   * deltay,                   BOARD_FIRST_PIXEL);
   int lower_bound = IMIN(oldy + down * deltay + NOTE_HEIGHT - 1, LCD_PIXEL_HEIGHT - 1);
+
+  int new_y = oldy + deltay * (-up + down);
 
   if (upper_bound >= LCD_PIXEL_HEIGHT || lower_bound < BOARD_FIRST_PIXEL) {
     // nothing to draw
@@ -640,23 +644,18 @@ void LCDmoveNoteVertical(int col, int oldy, int deltay) {
     x + NOTE_WIDTH - 1, lower_bound
   );
 
-  // if moving down, overwrite old first row  
-  if (down && /* TODO: move this check and the one in up inside the loop */ oldy >= BOARD_FIRST_PIXEL) {
-    for (int i = 0; i < deltay; ++i) {
-      drawBoardLine(col, oldy + i, NOTE_WIDTH, fret_pressed);
-    }
-  }
+  // if moving down, overwrite old upper rows
+  // if up, this loop will never execute as upper_bound == new_y
+  for (int row = upper_bound; row < new_y; ++row) {
+    drawBoardLine(col, row, NOTE_WIDTH, fret_pressed);
+  }  
 
-  drawNoteHelper(x, oldy + deltay * (-up + down), makeDrawer(fret_pressed));
+  drawNoteHelper(x, new_y, makeDrawer(fret_pressed));
 
-  // if moving up, overwrite old last row
-  if (up) {
-    int lower_line_y = oldy + NOTE_HEIGHT - 1;
-    if (lower_line_y < LCD_PIXEL_HEIGHT) {
-      for (int i = 0; i < deltay; ++i) {
-        drawBoardLine(col, lower_line_y + i, NOTE_WIDTH, fret_pressed);
-      }
-    }
+  // if moving up, overwrite old lower rows
+  // if down, this loop will never execute as new_y + NOTE_HEIGHT > lower_bound
+  for (int line_y = new_y + NOTE_HEIGHT; line_y <= lower_bound; ++line_y) {
+    drawBoardLine(col, line_y, NOTE_WIDTH, fret_pressed);
   }
 
   CS(1);
