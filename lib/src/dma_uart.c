@@ -79,7 +79,7 @@ typedef struct {
 } SendQueueElem;
 
 #define SEND_QUEUE_SIZE 64
-#define MAX_COPY_BUFFER_SIZE 64
+#define MAX_COPY_BUFFER_SIZE 128
 
 struct SendQueue {
   SendQueueElem elems[SEND_QUEUE_SIZE];
@@ -87,6 +87,8 @@ struct SendQueue {
   int size;
   int start;
 } queue;
+
+char temp_buf[MAX_COPY_BUFFER_SIZE];
 
 #define QUEUE_GET(n) (queue.elems[(queue.start + n) % SEND_QUEUE_SIZE])
 #define QUEUE_COPY_GET(n) (queue.buf_copies[(queue.start + n) % SEND_QUEUE_SIZE])
@@ -129,9 +131,8 @@ void dmaSend(const char* buf, size_t len) {
 void dmaSendWithCopy(const char* buf, size_t len) {
   if ((DMA1_Stream6->CR & DMA_SxCR_EN) == 0
       && (DMA1->HISR & DMA_HISR_TCIF6) == 0) {
-    char* copy_buf = QUEUE_COPY_GET(queue.size + 1);
-    memcpy(copy_buf, buf, len);
-    forceSend(copy_buf, len);
+    memcpy(temp_buf, buf, len);
+    forceSend(temp_buf, len);
   } else {
     char* copy_buf = QUEUE_COPY_GET(queue.size);
     memcpy(copy_buf, buf, len);

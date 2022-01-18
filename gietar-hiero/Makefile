@@ -6,10 +6,10 @@ CC = arm-eabi-gcc
 OBJCOPY = arm-eabi-objcopy
 FLAGS = -mthumb -mcpu=cortex-m4
 CPPFLAGS = -DSTM32F411xE
+#-DNDEBUG \#
 CFLAGS = $(FLAGS) \
     -std=gnu2x \
-    -DNDEBUG \
-    -Wall -Wextra -Wno-pedantic -Wshadow -Wunused \
+    -Werror -Wall -Wextra -Wno-pedantic -Wshadow -Wunused \
     -Wcast-align \
     -Wcast-qual -Wno-error=unused-variable \
     -Wdisabled-optimization \
@@ -46,7 +46,7 @@ FW_OBJ := startup_stm32.o delay.o gpio.o fonts.o
 
 LIB_SRC_DIR = ../lib/src
 # LIB_SRC := $(wildcard $(LIB_SRC_DIR)/*.c)
-LIB_SRC := $(LIB_SRC_DIR)/lcd.c $(LIB_SRC_DIR)/keyboard.c # $(LIB_SRC_DIR)/dma_uart.c
+LIB_SRC := $(LIB_SRC_DIR)/lcd.c $(LIB_SRC_DIR)/keyboard.c $(LIB_SRC_DIR)/dma_uart.c
 LIB_OBJ := $(LIB_SRC:$(LIB_SRC_DIR)/%.c=%.o)
 
 OBJECTS = $(PROJ_NAME)_main.o $(LIB_OBJ) $(FW_OBJ) game.o

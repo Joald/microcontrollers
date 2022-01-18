@@ -12,6 +12,8 @@
 
 #define MAX_NOTES_IN_COL 16
 #define NOTE_INIT_Y (-30)
+
+// concrete note that is already spawned
 typedef struct {
   int pos_y;
 } Note;
@@ -26,6 +28,55 @@ struct GameState {
     unsigned int st = state.note_buf_state[_col]; \
     st == 0 ? 0 : 32 - __builtin_clz(st); \
   })
+
+
+typedef uint64_t tick_t;
+
+// information on how notes should be spawned and played
+typedef struct {
+  int column; // the column of the note
+  tick_t start_time; // the number of ticks since start
+  // TODO: melodic 
+} NoteInfo;
+
+int to_spawn = 6;
+
+NoteInfo song[256] = {
+  {.column = 1, .start_time =  30},
+  {.column = 2, .start_time =  50},
+  {.column = 1, .start_time =  70},
+  {.column = 3, .start_time =  90},
+  {.column = 1, .start_time = 110},
+  {.column = 4, .start_time = 130},
+};
+
+int spawned = 0;
+
+void helperPrintUint64(char* start, uint64_t to_print, int space) {
+  for (char* next_space = start + space - 1; next_space >= start; next_space--) {
+    *next_space = '0' + to_print % 10;
+    to_print /= 10;
+  }
+} 
+
+
+// spawns all notes which haven't been spawned since last tick
+void spawnNotesForTick(tick_t tick) {
+  while (song[spawned].start_time <= tick && spawned < to_spawn) {
+    uint64_t noteY = song[spawned].start_time - tick - 100;
+    char msg[128] = "Spawning note with start time ............ during tick ............ at y = ............\n";
+    helperPrintUint64(msg + sizeof("Spawning note with start time ") - 1, song[spawned].start_time, 12);
+    helperPrintUint64(msg + sizeof("Spawning note with start time ............ during tick ") - 1, tick, 12);
+    helperPrintUint64(msg + sizeof("Spawning note with start time ............ during tick ............ at y = ") - 1, noteY, 12);
+    
+    dmaSendWithCopy(msg, 128);
+    
+    spawnNoteY(song[spawned].column, noteY);
+    spawned++;
+    
+  }
+}
+
 
 void spawnNote(int col) {
   spawnNoteY(col, NOTE_INIT_Y);
@@ -98,14 +149,14 @@ void deleteNote(int col, int i) {
   val < 0 ? -val : val; \
 })
 
-static int hit_window = 29; // determined by trial and error
+static int hit_window = 23; // determined by trial and error
 
 void handleFretPress(int col) {
   LCDpressFret(col);
   for (int i = 0; i < MAX_NOTES_IN_COL; ++i) {
     if (state.note_buf_state[COL] & (1 << i) &&
         IABS(state.notes[COL][i].pos_y - FRET_PRESS_Y) < hit_window) {
-      DMA_DBG("Detected fret/note collision!");
+      DMA_DBG("Detected fret/note collision!\n");
       deleteNote(col, i);
       // TODO: add points
     }
@@ -133,4 +184,13 @@ void decreaseHitWindow() {
   msg[sizeof("Hit window decreased to ") - 1] = '0' + hit_window / 10 % 10;
 
   dmaSendWithCopy(msg, sizeof(msg));
+}
+
+
+tick_t ticks = 0;
+
+void handleTicks(int how_many_ticks) {
+  ticks += how_many_ticks;
+  spawnNotesForTick(ticks);
+  moveNotes(how_many_ticks);
 }

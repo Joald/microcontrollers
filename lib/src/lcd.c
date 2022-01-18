@@ -52,12 +52,6 @@
 #define LCD_COLOR_CYAN     0x7FFF
 #define LCD_COLOR_YELLOW   0xFFE0
 
-// colors picked in gimp and exported to bmp
-#define LCD_BETTER_RED     0xc000
-#define LCD_BETTER_BLUE    0x27f
-#define LCD_BETTER_GREEN   0xd41
-#define LCD_BETTER_YELLOW  0xd680
-
 /* Needed delay(s)  */
 
 #define Tinit   150
@@ -188,10 +182,6 @@ void LCDsetRectangle(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {
   LCDwriteData16(y2);
 
   LCDwriteCommand(0x2C);
-}
-
-void LCDsetFullRectangle() {
-  LCDsetRectangle(0, 0, LCD_PIXEL_WIDTH - 1, LCD_PIXEL_HEIGHT - 1);
 }
 
 static void LCDcontrollerConfigure(void) {
@@ -345,13 +335,15 @@ void LCDputcharWrap(char c) {
   LCDputchar(c);
 }
 
+//// 99% of changes from the original are below this line
+
 void LCDsetFont(const font_t *font) {
   CurrentFont = font;
   TextHeight = LCD_PIXEL_HEIGHT / CurrentFont->height;
   TextWidth  = LCD_PIXEL_WIDTH  / CurrentFont->width;
   XOffset = (LCD_PIXEL_WIDTH  - TextWidth  * CurrentFont->width)  / 2;
   // don't have the space for padding
-  YOffset = 0; //(LCD_PIXEL_HEIGHT - TextHeight * CurrentFont->height) / 2;
+  YOffset = 0; // (LCD_PIXEL_HEIGHT - TextHeight * CurrentFont->height) / 2;
 }
 
 // Advanced interface implementation
@@ -361,8 +353,18 @@ static const uint16_t board_pixels[BSIZE] = {
   #include "board.txt"
 };
 
+// colors picked in gimp and exported to bmp
+#define LCD_BETTER_RED     0xc000
+#define LCD_BETTER_BLUE    0x27f
+#define LCD_BETTER_GREEN   0xd41
+#define LCD_BETTER_YELLOW  0xd680
+
 // Can make space above board for text display
-#define BOARD_FIRST_PIXEL 0 //CurrentFont->height
+#define BOARD_FIRST_PIXEL 0 // CurrentFont->height
+
+void LCDsetFullRectangle() {
+  LCDsetRectangle(0, 0, LCD_PIXEL_WIDTH - 1, LCD_PIXEL_HEIGHT - 1);
+}
 
 void LCDdrawBoard() {
   CS(0);
@@ -379,7 +381,7 @@ void LCDdrawBoard() {
 
 #define NOTE_SIZE (NOTE_WIDTH * NOTE_HEIGHT)
 
-// treating this one as extremely poor alpha channel
+// treating this one as an alpha channel (with separate alpha for each color)
 static const uint16_t note_pixels[NOTE_SIZE] = {
   #include "note.txt"
 };
@@ -409,6 +411,7 @@ typedef uint16_t (*PixelCalculator)(int x, int y, int px, int py);
 #define GET_RED(pixel) ((pixel & LCD_COLOR_RED) >> 11)
 #define GET_GREEN(pixel) ((pixel & LCD_COLOR_GREEN) >> 5)
 #define GET_BLUE(pixel) (pixel & LCD_COLOR_BLUE)
+
 #define SET_RED(pixel, val) \
   do { \
     static_assert(sizeof(pixel) == sizeof(uint16_t), "setting color of non 16-bit value"); \
@@ -430,23 +433,28 @@ typedef uint16_t (*PixelCalculator)(int x, int y, int px, int py);
     pixel &= ~LCD_COLOR_BLUE; \
     pixel |= val; \
   } while (false)
+
 #define SHIFT_RED(val) (val << 11)
 #define SHIFT_GREEN(val) (val << 5)
 #define SHIFT_BLUE(val) (val)
+
+#define LCD_COLOR_TEST LCD_COLOR_WHITE
+
+// test the macros
 static_assert(
-  ( GET_RED(LCD_COLOR_WHITE) << 11
-  | GET_GREEN(LCD_COLOR_WHITE) << 5
-  | GET_BLUE(LCD_COLOR_WHITE)
-  ) == LCD_COLOR_WHITE, "bad color getters");
+  ( GET_RED(LCD_COLOR_TEST) << 11
+  | GET_GREEN(LCD_COLOR_TEST) << 5
+  | GET_BLUE(LCD_COLOR_TEST)
+  ) == LCD_COLOR_TEST, "bad color getters");
 static_assert(GET_RED(LCD_COLOR_WHITE) << 11 == LCD_COLOR_RED, "bad red getter");
 static_assert(GET_GREEN(LCD_COLOR_WHITE) << 5 == LCD_COLOR_GREEN, "bad green getter");
 static_assert(GET_BLUE(LCD_COLOR_WHITE) == LCD_COLOR_BLUE, "bad blue getter");
 
 static_assert(
-  ( SHIFT_RED(GET_RED(LCD_COLOR_WHITE))
-  | SHIFT_GREEN(GET_GREEN(LCD_COLOR_WHITE))
-  | SHIFT_BLUE(GET_BLUE(LCD_COLOR_WHITE))
-  ) == LCD_COLOR_WHITE, "bad shift");
+  ( SHIFT_RED(GET_RED(LCD_COLOR_TEST))
+  | SHIFT_GREEN(GET_GREEN(LCD_COLOR_TEST))
+  | SHIFT_BLUE(GET_BLUE(LCD_COLOR_TEST))
+  ) == LCD_COLOR_TEST, "bad shift");
 static_assert(SHIFT_RED(GET_RED(LCD_COLOR_WHITE)) == LCD_COLOR_RED, "bad red shift");
 static_assert(SHIFT_GREEN(GET_GREEN(LCD_COLOR_WHITE)) == LCD_COLOR_GREEN, "bad green shift");
 static_assert(SHIFT_BLUE(GET_BLUE(LCD_COLOR_WHITE)) == LCD_COLOR_BLUE, "bad blue shift");
@@ -545,9 +553,11 @@ uint16_t noteRemover(int x, int y, int px, int py) {
 }
 
 uint16_t noteRemoverFretPressed(int x, int y, int px, int py) {
-  // TODO
   int board_x = x + px;
   int board_y = y + py;
+  if (board_y >= FRET_PRESS_Y && board_y < FRET_PRESS_Y + NOTE_HEIGHT) { 
+    return makeDrawer(true)(x, y, px, board_y - FRET_PRESS_Y);
+  }
   int board_index = board_y * LCD_PIXEL_WIDTH + board_x;
   return board_pixels[board_index];
 }
@@ -598,7 +608,7 @@ void LCDdrawNote(int col, int y) {
 
 
 // This function assumes that a note is displayed in column col at y=oldy
-// It draws another note 1 pixel higher/lower according to passed flag
+// It draws another note deltay pixels higher/lower according to passed flag
 // Also it fills the space unoccupied by the new note with background pixels
 // Doesn't draw pixels outside the screen.
 void LCDmoveNoteVertical(int col, int oldy, int deltay) {
@@ -666,7 +676,8 @@ void LCDremoveNote(int col, int y) {
   
   CS(0);
   LCDsetRectangle(x, upper_bound, x + NOTE_WIDTH - 1, lower_bound);
-  drawNoteHelper(x, y, noteRemover);
+  LCDsetColorPixel(col_color[col]);
+  drawNoteHelper(x, y, LCDisFretPressed(col) ? noteRemoverFretPressed : noteRemover);
   CS(1);
   LCDgoto(0, 0);
 }
@@ -679,8 +690,8 @@ void LCDpressFret(int col) {
 }
 
 void LCDreleaseFret(int col) {
-  LCDremoveNote(col, FRET_PRESS_Y);
   col_pressed[col] = false;
+  LCDremoveNote(col, FRET_PRESS_Y);
 }
 
 bool LCDisFretPressed(int col) {

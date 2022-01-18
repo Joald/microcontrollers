@@ -52,15 +52,11 @@ extern void TIM5_IRQHandler() {
   uint32_t it_status = TIM5->SR & TIM5->DIER;
   if (it_status & TIM_SR_UIF) {
     TIM5->SR = ~TIM_SR_UIF;
-    static bool first_handler = false;
-    if (!first_handler) {
-      DMA_DBG("First HANDLER!\n");
-      first_handler = true;
-    }
-    if (fall_on && post_counter == 0) {
-      atomic_fetch_add(&to_move, 1);
-    }
+
     if (fall_on) {
+      if (post_counter == 0) {
+        atomic_fetch_add(&to_move, 1);
+      }
       post_counter++;
       post_counter &= post_counter_max - 1;
     }
@@ -116,7 +112,7 @@ void loop() {
   }
   int moves = atomic_exchange(&to_move, 0);
   if (moves > 0) {
-    moveNotes(moves);
+    handleTicks(moves);
   }
 }
 
@@ -133,10 +129,10 @@ int main() {
 
   // Delay(10000);
 
-  spawnNoteY(1, -120);
-  spawnNoteY(2, -90);
-  spawnNoteY(3, -60);
-  spawnNoteY(4, -30);
+  // spawnNoteY(1, -120);
+  // spawnNoteY(2, -90);
+  // spawnNoteY(3, -60);
+  // spawnNoteY(4, -30);
 
   while (true) {
     loop();
