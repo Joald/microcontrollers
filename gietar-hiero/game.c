@@ -8,7 +8,7 @@
 #include "game.h"
 #include "speaker.h"
 
-static void helperPrintInt64(char* start, int64_t to_print, int space) {
+static void helperPrintInt64(char start[], int64_t to_print, int space) {
   bool minus = false;
   if (to_print < 0) {
     minus = true;
@@ -101,70 +101,6 @@ const int to_spawn = 64;
 // must be ordered by start_time
 const NoteInfo song[256] = {
 #include "song.txt"
-  // {.column = 1, .start_time = 10, .note = {.letter = 2, .octave = 3}, .duration = 29},
-  // {.column = 4, .start_time = 40, .note = {.letter = 2, .octave = 4}, .duration = 29},
-  // {.column = 3, .start_time = 70, .note = {.letter = 9, .octave = 3}, .duration = 29},
-  // {.column = 2, .start_time = 100, .note = {.letter = 7, .octave = 3}, .duration = 29},
-  // {.column = 4, .start_time = 130, .note = {.letter = 7, .octave = 4}, .duration = 29},
-  // {.column = 2, .start_time = 160, .note = {.letter = 7, .octave = 3}, .duration = 29},
-  // {.column = 3, .start_time = 190, .note = {.letter = 6, .octave = 4}, .duration = 29},
-  // {.column = 2, .start_time = 220, .note = {.letter = 7, .octave = 3}, .duration = 29},
-  // {.column = 1, .start_time = 250, .note = {.letter = 2, .octave = 3}, .duration = 29},
-  // {.column = 4, .start_time = 280, .note = {.letter = 2, .octave = 4}, .duration = 29},
-  // {.column = 3, .start_time = 310, .note = {.letter = 9, .octave = 3}, .duration = 29},
-  // {.column = 2, .start_time = 340, .note = {.letter = 7, .octave = 3}, .duration = 29},
-  // {.column = 4, .start_time = 370, .note = {.letter = 7, .octave = 4}, .duration = 29},
-  // {.column = 2, .start_time = 400, .note = {.letter = 7, .octave = 3}, .duration = 29},
-  // {.column = 3, .start_time = 430, .note = {.letter = 6, .octave = 4}, .duration = 29},
-  // {.column = 2, .start_time = 460, .note = {.letter = 7, .octave = 3}, .duration = 29},
-  // {.column = 2, .start_time = 490, .note = {.letter = 4, .octave = 3}, .duration = 29},
-  // {.column = 4, .start_time = 520, .note = {.letter = 2, .octave = 4}, .duration = 29},
-  // {.column = 3, .start_time = 550, .note = {.letter = 9, .octave = 3}, .duration = 29},
-  // {.column = 2, .start_time = 580, .note = {.letter = 7, .octave = 3}, .duration = 29},
-  // {.column = 4, .start_time = 610, .note = {.letter = 7, .octave = 4}, .duration = 29},
-  // {.column = 2, .start_time = 640, .note = {.letter = 7, .octave = 3}, .duration = 29},
-  // {.column = 3, .start_time = 670, .note = {.letter = 6, .octave = 4}, .duration = 29},
-  // {.column = 2, .start_time = 700, .note = {.letter = 7, .octave = 3}, .duration = 29},
-  // {.column = 2, .start_time = 730, .note = {.letter = 4, .octave = 3}, .duration = 29},
-  // {.column = 4, .start_time = 760, .note = {.letter = 2, .octave = 4}, .duration = 29},
-  // {.column = 3, .start_time = 790, .note = {.letter = 9, .octave = 3}, .duration = 29},
-  // {.column = 2, .start_time = 820, .note = {.letter = 7, .octave = 3}, .duration = 29},
-  // {.column = 4, .start_time = 850, .note = {.letter = 7, .octave = 4}, .duration = 29},
-  // {.column = 2, .start_time = 880, .note = {.letter = 7, .octave = 3}, .duration = 29},
-  // {.column = 3, .start_time = 910, .note = {.letter = 6, .octave = 4}, .duration = 29},
-  // {.column = 2, .start_time = 940, .note = {.letter = 7, .octave = 3}, .duration = 29},
-  // {.column = 3, .start_time = 970, .note = {.letter = 7, .octave = 3}, .duration = 29},
-  // {.column = 4, .start_time = 1000, .note = {.letter = 2, .octave = 4}, .duration = 29},
-  // {.column = 3, .start_time = 1030, .note = {.letter = 9, .octave = 3}, .duration = 29},
-  // {.column = 2, .start_time = 1060, .note = {.letter = 7, .octave = 3}, .duration = 29},
-  // {.column = 4, .start_time = 1090, .note = {.letter = 7, .octave = 4}, .duration = 29},
-  // {.column = 2, .start_time = 1120, .note = {.letter = 7, .octave = 3}, .duration = 29},
-  // {.column = 3, .start_time = 1150, .note = {.letter = 6, .octave = 4}, .duration = 29},
-  // {.column = 2, .start_time = 1180, .note = {.letter = 7, .octave = 3}, .duration = 29},
-  // {.column = 3, .start_time = 1210, .note = {.letter = 7, .octave = 3}, .duration = 29},
-  // {.column = 4, .start_time = 1240, .note = {.letter = 2, .octave = 4}, .duration = 29},
-  // {.column = 3, .start_time = 1270, .note = {.letter = 9, .octave = 3}, .duration = 29},
-  // {.column = 2, .start_time = 1300, .note = {.letter = 7, .octave = 3}, .duration = 29},
-  // {.column = 4, .start_time = 1330, .note = {.letter = 7, .octave = 4}, .duration = 29},
-  // {.column = 2, .start_time = 1360, .note = {.letter = 7, .octave = 3}, .duration = 29},
-  // {.column = 3, .start_time = 1390, .note = {.letter = 6, .octave = 4}, .duration = 29},
-  // {.column = 2, .start_time = 1420, .note = {.letter = 7, .octave = 3}, .duration = 29},
-  // {.column = 1, .start_time = 1450, .note = {.letter = 2, .octave = 3}, .duration = 29},
-  // {.column = 4, .start_time = 1480, .note = {.letter = 2, .octave = 4}, .duration = 29},
-  // {.column = 3, .start_time = 1510, .note = {.letter = 9, .octave = 3}, .duration = 29},
-  // {.column = 2, .start_time = 1540, .note = {.letter = 7, .octave = 3}, .duration = 29},
-  // {.column = 4, .start_time = 1570, .note = {.letter = 7, .octave = 4}, .duration = 29},
-  // {.column = 2, .start_time = 1600, .note = {.letter = 7, .octave = 3}, .duration = 29},
-  // {.column = 3, .start_time = 1630, .note = {.letter = 6, .octave = 4}, .duration = 29},
-  // {.column = 2, .start_time = 1660, .note = {.letter = 7, .octave = 3}, .duration = 29},
-  // {.column = 1, .start_time = 1690, .note = {.letter = 2, .octave = 3}, .duration = 29},
-  // {.column = 4, .start_time = 1720, .note = {.letter = 2, .octave = 4}, .duration = 29},
-  // {.column = 3, .start_time = 1750, .note = {.letter = 9, .octave = 3}, .duration = 29},
-  // {.column = 2, .start_time = 1780, .note = {.letter = 7, .octave = 3}, .duration = 29},
-  // {.column = 4, .start_time = 1810, .note = {.letter = 7, .octave = 4}, .duration = 29},
-  // {.column = 2, .start_time = 1840, .note = {.letter = 7, .octave = 3}, .duration = 29},
-  // {.column = 3, .start_time = 1870, .note = {.letter = 6, .octave = 4}, .duration = 29},
-  // {.column = 2, .start_time = 1900, .note = {.letter = 7, .octave = 3}, .duration = 29},
 };
 
 // spawns all notes which haven't been spawned since last tick
@@ -172,10 +108,14 @@ void spawnNotesForTick(tick_t tick) {
   while (song[state.spawned].start_time <= tick && state.spawned < to_spawn) {
     int64_t noteY = song[state.spawned].start_time - tick - 100;
     char msg[128] = "Spawning note with start time ............ during tick ............ at y = ............\n";
+
+// helperPrintInt64 can't be easily optimized out or inlined, so this trick optimizes it away regardless.
+#ifndef NDEBUG
     helperPrintInt64(msg + sizeof("Spawning note with start time ") - 1, song[state.spawned].start_time, 12);
     helperPrintInt64(msg + sizeof("Spawning note with start time ............ during tick ") - 1, tick, 12);
     helperPrintInt64(msg + sizeof("Spawning note with start time ............ during tick ............ at y = ") - 1, noteY, 12);
-    
+#endif
+
     dmaSendWithCopy(msg, 128);
     
     spawnNoteY(&song[state.spawned], noteY);

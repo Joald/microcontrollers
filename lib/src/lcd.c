@@ -615,7 +615,7 @@ void LCDdrawNote(int col, int y) {
 // This function assumes that a note is displayed in column col at y=oldy
 // It draws another note deltay pixels higher/lower according to passed flag
 // Also it fills the space unoccupied by the new note with background pixels
-// Doesn't draw pixels outside the screen.
+// Doesn't try to draw pixels outside the screen (only up/down).
 void LCDmoveNoteVertical(int col, int oldy, int deltay) {
   int x = col_x[col];
 

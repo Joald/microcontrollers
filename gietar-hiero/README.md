@@ -1,5 +1,5 @@
 # Gietar Hiero 
-Guitar Hero/Rock Band/similar games clone made for STM32F411
+Guitar Hero/Rock Band/similar games clone made for STM32F411 as part of the Microcontroller Programming course
 
 ## Program structure
 
@@ -18,6 +18,17 @@ Guitar Hero/Rock Band/similar games clone made for STM32F411
 
 - build using `make` inside the folder containing `gietar_hiero_main.c`
 - Two build modes are supported (but require manual Makefile editing)
-  - default mode is debug
-  - switching to no debug requires adding `-DNDEBUG` to the `CFLAGS` variable and removing `dma_uart.c` from `LIB_SRC`
-  - no debug mode makes all of the functions declared in `dma_uart.h` noops
+  - default mode is no debug
+  - switching to debug requires removing `-DNDEBUG` from the `CFLAGS` variable 
+    and adding `dma_uart.c` to `LIB_SRC`
+  - no debug mode makes all of the functions declared in `dma_uart.h` noops, which 
+    optimizes away all of the calling code
+
+
+## Asset files
+
+All assets are stored in .txt files, in such a way that they can be #included inside an array declaration.
+- Images for the board and the notes were created in GIMP, exported to bmp using the default color palette
+  used by the LCD. Then the extract_bmp.py script can be used to convert those to a C array contents.
+- Note wavelengths are precalculated, more details in the code where they're included.
+- The song can be generated in any way that fits the data structure, but an example is in generate_song.py.
