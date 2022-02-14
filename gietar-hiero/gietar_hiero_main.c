@@ -10,6 +10,7 @@
 #include "lib/include/keyboard.h"
 #include "lib/include/lcd.h"
 
+#include "speaker.h"
 #include "game.h"
 
 // for debugging only
@@ -42,8 +43,6 @@ void initGameTimer() {
   TIM5->CR1 |= TIM_CR1_CEN;
 }
 
-uint64_t post_counter = 0;
-uint64_t post_counter_max = 1;
 bool fall_on = false;
 
 atomic_int to_move = 0;
@@ -54,33 +53,29 @@ extern void TIM5_IRQHandler() {
     TIM5->SR = ~TIM_SR_UIF;
 
     if (fall_on) {
-      if (post_counter == 0) {
-        atomic_fetch_add(&to_move, 1);
-      }
-      post_counter++;
-      post_counter &= post_counter_max - 1;
+      atomic_fetch_add(&to_move, 1);
     }
   }
 }
 
 void loop() {
   KbKey key;
+
+  // handle key press events
   while ((key = getNext()) != KB_NOKEY) {
     // 123A press frets
-    // 456B debug spawn notes
-    // * toggles note fall
-    // CD control note fall speed
-    // 80 regulate the note hit window
     // 7 resets song
+    // * toggles note fall
+    // others were previously used for debugging
 
-    if (GET_ROW_NUM(key) == 1) {
+    if (GET_ROW_NUM(key) == 1) { // Row 1; keys 1-4
       int col = GET_COL_NUM(key);
       handleFretPress(col);
     }
 
-    if (GET_ROW_NUM(key) == 2) {
-      int col = GET_COL_NUM(key);
-      spawnNote(col);
+    if (key == KB_7) {
+      DMA_DBG("Resetting...\n");
+      resetGame();
     }
 
     if (key == KB_STAR) {
@@ -91,25 +86,9 @@ void loop() {
         DMA_DBG("Fall off!\n");
       }
     }
-    if (key == KB_C && post_counter_max > 1) {
-      post_counter_max >>= 1;
-      DMA_DBG("Speeding up!\n");
-    }
-    if (key == KB_D && post_counter_max < 1ull << 62ull) {
-      post_counter_max <<= 1;
-      DMA_DBG("Slowing down!\n");
-    }
-    if (key == KB_8) {
-      increaseHitWindow();
-    }
-    if (key == KB_0) {
-      decreaseHitWindow();
-    }
-    if (key == KB_7) {
-      DMA_DBG("Resetting...\n");
-      resetGame();
-    }
   }
+
+  // check for fret key release
   for (int i = 1; i <= 4; ++i) {
     if (LCDisFretPressed(i) && !isKeyHeld(KB_ROW_KEY(1) | KB_COL_KEY(i))) {
       handleFretRelease(i);
@@ -132,13 +111,14 @@ int main() {
   updateScore();
 
   initGameTimer();
+  initSpeakerTimer();
 
   while (true) {
     loop();
   }
 }
 
-/** TODO:
+/** TODOLIST:
  X Make note drawing/moving respect edges
  X figure out which y is ok for fret press
  X implement fret pressing
@@ -149,9 +129,8 @@ int main() {
  X combine the two to play notes
    STRETCH:
  X add basic song storage
- * play basic sounds
- * add note pitch to the song storage and play the sounds when relevant
- * add basic scoring
+ X play basic sounds
+ X add note pitch to the song storage and play the sounds when relevant
+ X add basic scoring
  * maybe add loading screen, menu etc.
- * communicate with laptop to get some actual "music"
  */

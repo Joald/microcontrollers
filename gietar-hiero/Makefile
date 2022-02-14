@@ -1,13 +1,12 @@
-# This is the base file to copy when starting new project
-
 PROJ_NAME := gietar_hiero
 
 CC = arm-eabi-gcc
 OBJCOPY = arm-eabi-objcopy
 FLAGS = -mthumb -mcpu=cortex-m4
 CPPFLAGS = -DSTM32F411xE
-#-DNDEBUG \#
+
 CFLAGS = $(FLAGS) \
+    -DNDEBUG \
     -std=gnu2x \
     -Werror -Wall -Wextra -Wno-pedantic -Wshadow -Wunused \
     -Wcast-align \
@@ -42,11 +41,11 @@ vpath %.c ../lib/src
 vpath %.c /opt/arm/stm32/src
 
 
-FW_OBJ := startup_stm32.o delay.o gpio.o fonts.o
+FW_OBJ := startup_stm32.o delay.o gpio.o fonts.o speaker.o
 
 LIB_SRC_DIR = ../lib/src
 # LIB_SRC := $(wildcard $(LIB_SRC_DIR)/*.c)
-LIB_SRC := $(LIB_SRC_DIR)/lcd.c $(LIB_SRC_DIR)/keyboard.c $(LIB_SRC_DIR)/dma_uart.c
+LIB_SRC := $(LIB_SRC_DIR)/lcd.c $(LIB_SRC_DIR)/keyboard.c # $(LIB_SRC_DIR)/dma_uart.c
 LIB_OBJ := $(LIB_SRC:$(LIB_SRC_DIR)/%.c=%.o)
 
 OBJECTS = $(PROJ_NAME)_main.o $(LIB_OBJ) $(FW_OBJ) game.o

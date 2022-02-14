@@ -5,8 +5,7 @@
 
 void updateScore();
 void resetGame();
-void spawnNote(int col);
-void spawnNoteY(int col, int y);
+// void spawnNote(int col);
 void deleteNote(int col, int i);
 void moveNotes(int how_many);
 void handleTicks(uint32_t how_many_ticks);

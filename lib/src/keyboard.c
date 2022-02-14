@@ -63,22 +63,22 @@ void EXTI9_5_IRQHandler() {
   setAllColsTo(true);
 
   // reset the counter
-  TIM3->CNT = 0;
+  TIM2->CNT = 0;
   // enable the counter
-  TIM3->CR1 |= TIM_CR1_CEN;
+  TIM2->CR1 |= TIM_CR1_CEN;
 }
 
 bool scanKeys();
 
-void TIM3_IRQHandler() {
-  uint32_t it_status = TIM3->SR & TIM3->DIER;
+void TIM2_IRQHandler() {
+  uint32_t it_status = TIM2->SR & TIM2->DIER;
   if (it_status & TIM_SR_UIF) {
-    TIM3->SR = ~TIM_SR_UIF;
+    TIM2->SR = ~TIM_SR_UIF;
     bool anything_pressed = scanKeys();
 
     if (!anything_pressed) {
       // disable counter
-      TIM3->CR1 &= ~TIM_CR1_CEN;
+      TIM2->CR1 &= ~TIM_CR1_CEN;
 
       setAllColsTo(false);
 
@@ -260,19 +260,19 @@ void initKb() {
 
   // enable timer3 timing
   RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
-  RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
+  RCC->APB1ENR |= RCC_APB1ENR_TIM2EN;
 
   // configure timer
-  TIM3->CR1 = TIM_CR1_URS; // counting up, interrupts only on overflow
-  TIM3->PSC = 0;
-  TIM3->ARR = 160000; // 10 ms / (1 / 16 MHz) = 160 000
-  TIM3->EGR = TIM_EGR_UG;
+  TIM2->CR1 = TIM_CR1_URS; // counting up, interrupts only on overflow
+  TIM2->PSC = 0;
+  TIM2->ARR = 160000; // 10 ms / (1 / 16 MHz) = 160 000
+  TIM2->EGR = TIM_EGR_UG;
 
   // enable update interrupt
-  TIM3->SR = ~TIM_SR_UIF;
-  TIM3->DIER = TIM_DIER_UIE;
+  TIM2->SR = ~TIM_SR_UIF;
+  TIM2->DIER = TIM_DIER_UIE;
 
-  NVIC_EnableIRQ(TIM3_IRQn);
+  NVIC_EnableIRQ(TIM2_IRQn);
 
   // set all columns to low
   for (int i = 1; i <= N_COLS; ++i) {

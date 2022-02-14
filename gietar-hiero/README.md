@@ -9,6 +9,7 @@ Guitar Hero/Rock Band/similar games clone made for STM32F411
   - `lcd.c` contains all screen drawing primitives (as well as the instructor-provided basic driver)
 - `gietar-hiero` directory
   - `game.c` contains all game logic concerning spawning/despawning/moving notes
+  - `speaker.c` contains a very basic driver for playing monotone sounds
   - `gietar_hiero_main.c` contains the game timer counter and the main loop, which:
     - reads the keyboard buffer and processes the actions
     - instructs the game logic to move notes by the amount of ticks given by the counter
