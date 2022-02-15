@@ -32,18 +32,18 @@ CFLAGS = $(FLAGS) \
     -I/opt/arm/stm32/inc \
     -I/opt/arm/stm32/CMSIS/Include \
     -I/opt/arm/stm32/CMSIS/Device/ST/STM32F4xx/Include \
-    -iquote ../lib/include \
+    -iquote lib/include \
     -iquote .
 LDFLAGS = $(FLAGS) -Wl,--gc-sections -nostartfiles \
     -L/opt/arm/stm32/lds -Tstm32f411re.lds \
 
-vpath %.c ../lib/src
+vpath %.c lib/src
 vpath %.c /opt/arm/stm32/src
 
 
 FW_OBJ := startup_stm32.o delay.o gpio.o fonts.o speaker.o
 
-LIB_SRC_DIR = ../lib/src
+LIB_SRC_DIR = lib/src
 # LIB_SRC := $(wildcard $(LIB_SRC_DIR)/*.c)
 LIB_SRC := $(LIB_SRC_DIR)/lcd.c $(LIB_SRC_DIR)/keyboard.c # $(LIB_SRC_DIR)/dma_uart.c
 LIB_OBJ := $(LIB_SRC:$(LIB_SRC_DIR)/%.c=%.o)

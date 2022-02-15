@@ -4,9 +4,6 @@
 #include "speaker.h"
 #include "dma_uart.h"
 
-// TODO: figure out how this works with TIM2
-
-
 #define SPEAKER_GPIO GPIOB
 #define SPEAKER_PIN 7
 

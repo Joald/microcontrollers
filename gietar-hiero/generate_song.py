@@ -28,6 +28,9 @@ def sweet_child_o_mine(out):
   octaves = '43' * (len(columns) // 2) + '4'
 
   for i in range(len(columns)):
+    if i == len(columns) - 1:
+      # last note is longer (1/2 note instead of 1/8)
+      duration *= 4
     out(output_i(i))
     start += intervals[i]
   

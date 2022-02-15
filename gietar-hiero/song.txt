@@ -190,5 +190,5 @@
   {.column = 2, .start_time = 5680, .note = {.letter = 9, .octave = 3}, .duration = 29},
   {.column = 1, .start_time = 5710, .note = {.letter = 6, .octave = 4}, .duration = 29},
   {.column = 2, .start_time = 5740, .note = {.letter = 9, .octave = 3}, .duration = 29},
-  {.column = 3, .start_time = 5770, .note = {.letter = 2, .octave = 4}, .duration = 29},
+  {.column = 3, .start_time = 5770, .note = {.letter = 2, .octave = 4}, .duration = 119},
 // 193 notes recorded

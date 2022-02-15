@@ -96,7 +96,7 @@ void changeScoreBy(int delta) {
 }
 
 
-const int to_spawn = 64;
+const int to_spawn = 193; // This value to be manually copied from the comment in song.txt
 
 // must be ordered by start_time
 const NoteInfo song[256] = {
@@ -109,7 +109,7 @@ void spawnNotesForTick(tick_t tick) {
     int64_t noteY = song[state.spawned].start_time - tick - 100;
     char msg[128] = "Spawning note with start time ............ during tick ............ at y = ............\n";
 
-// helperPrintInt64 can't be easily optimized out or inlined, so this trick optimizes it away regardless.
+// helperPrintInt64 isn't easily optimized out or inlined, so this trick optimizes it away regardless.
 #ifndef NDEBUG
     helperPrintInt64(msg + sizeof("Spawning note with start time ") - 1, song[state.spawned].start_time, 12);
     helperPrintInt64(msg + sizeof("Spawning note with start time ............ during tick ") - 1, tick, 12);

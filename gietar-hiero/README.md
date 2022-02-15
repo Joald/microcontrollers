@@ -3,11 +3,11 @@ Guitar Hero/Rock Band/similar games clone made for STM32F411 as part of the Micr
 
 ## Program structure
 
-- `lib` directory
+- `lib` directory contains code that was reused or modified from previous assignments
   - `keyboard.c` scans the keyboard and places the results in a buffer
   - `dma_uart.c` sends debugging messages to the UART
   - `lcd.c` contains all screen drawing primitives (as well as the instructor-provided basic driver)
-- `gietar-hiero` directory
+- Main `gietar-hiero` directory
   - `game.c` contains all game logic concerning spawning/despawning/moving notes
   - `speaker.c` contains a very basic driver for playing monotone sounds
   - `gietar_hiero_main.c` contains the game timer counter and the main loop, which:
